@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.6.6
+// @version      2.6.7
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -91,7 +91,7 @@
 
         /* 全屏时的动画 */
         .ds-chat-window.fullscreen {
-            width: 100vw !important;
+            width: 100% !important;
             /*height: 100vh !important;*/
             /*wheight: 100vh !important;*/
             max-width: 100vw !important;

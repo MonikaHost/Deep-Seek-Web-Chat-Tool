@@ -52,5 +52,5 @@
 3. 网页内容分析功能可能不适用于所有网站
 4. 建议设置合理的token限制以避免超额
 
-![IMG_3016.png](data/attachment/forum/202504/10/154445vlli4omi5dmvnzvk.png)
+ ![IMG_3016.png](data/attachment/forum/202504/10/154445vlli4omi5dmvnzvk.png)
 希望这款工具能提升您的网页浏览和知识获取体验！如有问题，欢迎反馈。
