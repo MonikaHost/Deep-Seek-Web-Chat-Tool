@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.8.2
+// @version      2.8.4
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -245,6 +245,49 @@
             color: #666;
             margin-top: 5px;
             font-style: italic;
+        }
+        .ds-chat-message {
+            white-space: pre-wrap;
+            word-break: break-word;
+            visibility: visible !important;
+            display: block !important;
+            opacity: 1 !important;
+        }
+        .ds-ai-message {
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 8px 12px;
+            margin: 4px 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            color: #2372c3 !important;
+        }
+        .ds-message-content {
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+            color: #2372c3 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            min-height: 1em;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .ds-message-content::after {
+            content: '|';
+            position: relative;
+            display: inline;
+            color: #2372c3;
+            animation: blink 1s infinite;
+            margin-left: 2px;
+        }
+
+        .ds-message-content:not(:empty)::after {
+            display: none;
         }
     `);
 
@@ -511,45 +554,69 @@
 
         // 流式响应处理
         function handleStreamResponse(response, aiMsgDiv) {
-            const decoder = new TextDecoder();
-            const reader = response.body.getReader();
-            let buffer = '';
-            let aiMessage = '';
+            return new Promise((resolve, reject) => {
+                let aiMessage = '';
 
-            function readChunk() {
-                return reader.read().then(({ done, value }) => {
-                    if (done) {
-                        // 完成响应后保存完整消息
-                        config.chatHistory.push({ role: 'assistant', content: aiMessage });
-                        GM_setValue('chatHistory', config.chatHistory);
-                        return;
-                    }
+                // 确保消息容器结构正确
+                aiMsgDiv.innerHTML = '';
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'ds-message-content';
+                aiMsgDiv.appendChild(contentDiv);
 
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop();
+                // 创建文本解码器
+                const decoder = new TextDecoder();
+                let buffer = '';
 
-                    for (const line of lines) {
-                        if (line.startsWith('data:') && line !== 'data: [DONE]') {
-                            try {
-                                const data = JSON.parse(line.substring(5));
-                                if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
-                                    const content = data.choices[0].delta.content;
-                                    aiMessage += content;
-                                    aiMsgDiv.innerText = aiMessage;
-                                    chatContent.scrollTop = chatContent.scrollHeight;
+                // 创建响应流读取器
+                const reader = response.response.getReader();
+                
+                // 递归读取流
+                function readStream() {
+                    reader.read().then(({done, value}) => {
+                        if (done) {
+                            // 保存消息到历史记录
+                            if (aiMessage.trim()) {
+                                config.chatHistory.push({ role: 'assistant', content: aiMessage });
+                                GM_setValue('chatHistory', config.chatHistory);
+                            }
+                            resolve();
+                            return;
+                        }
+
+                        // 解码接收到的数据
+                        buffer += decoder.decode(value, {stream: true});
+                        
+                        // 处理完整的数据行
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || ''; // 保留不完整的行
+
+                        for (const line of lines) {
+                            if (!line.trim() || line === 'data: [DONE]') continue;
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    if (data.choices?.[0]?.delta?.content) {
+                                        const newContent = data.choices[0].delta.content;
+                                        aiMessage += newContent;
+                                        contentDiv.textContent = aiMessage;
+                                        chatContent.scrollTop = chatContent.scrollHeight;
+                                    }
+                                } catch (e) {
+                                    console.warn('解析响应数据失败:', e);
                                 }
-                            } catch (e) {
-                                console.error('解析流数据错误:', e);
                             }
                         }
-                    }
 
-                    return readChunk();
-                });
-            }
+                        // 继续读取流
+                        readStream();
+                    }).catch(error => {
+                        reject(error);
+                    });
+                }
 
-            return readChunk();
+                // 开始读取流
+                readStream();
+            });
         }
 
         // 计算消息的 token 数量（简单估算）
@@ -575,12 +642,22 @@
         }
 
         // 发送消息函数
-        function sendMessage(message) {
+        async function sendMessage(message, retryCount = 0) {
             if (!message.trim()) return;
 
             if (!config.apiKey) {
-                alert('请先设置API密钥！');
+                alert('请先设置 API 密钥！');
                 settingsBtn.click();
+                return;
+            }
+
+            // 检查网络连接
+            if (!navigator.onLine) {
+                const errorMsgDiv = document.createElement('div');
+                errorMsgDiv.className = 'ds-chat-message ds-error';
+                errorMsgDiv.innerText = '错误: 网络连接已断开,请检查网络后重试';
+                chatContent.appendChild(errorMsgDiv);
+                chatContent.scrollTop = chatContent.scrollHeight;
                 return;
             }
 
@@ -595,13 +672,13 @@
             userMsgDiv.innerText = message;
             chatContent.appendChild(userMsgDiv);
 
-            // 显示“思考中...”提示
+            // 显示"思考中..."提示
             const thinkingMsgDiv = document.createElement('div');
             thinkingMsgDiv.className = 'ds-chat-message ds-thinking';
             thinkingMsgDiv.innerText = '思考中...';
             chatContent.appendChild(thinkingMsgDiv);
 
-            // 准备AI消息容器
+            // 创建AI消息容器
             const aiMsgDiv = document.createElement('div');
             aiMsgDiv.className = 'ds-chat-message ds-ai-message';
             chatContent.appendChild(aiMsgDiv);
@@ -613,14 +690,13 @@
                 model: config.model,
                 messages: [
                     { role: 'system', content: config.personalityPrompt },
-                    ...truncateContext(config.chatHistory, config.maxContextTokens) // 截断上下文
+                    ...truncateContext(config.chatHistory, config.maxContextTokens)
                 ],
                 temperature: config.temperature,
                 max_tokens: config.maxTokens,
-                stream: true, // 启用流式响应
+                stream: true,
             };
 
-            // 如果启用了网页上下文，将网页数据作为附加信息插入
             if (config.usePageContext) {
                 const pageContent = getPageContent();
                 requestData.messages.splice(1, 0, {
@@ -634,31 +710,80 @@ URL: ${pageContent.url}
                 });
             }
 
-            // 发送请求
-            fetch(config.apiUrl, {  // 修改为使用配置的API URL
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.apiKey}`
-                },
-                body: JSON.stringify(requestData)
-            }).then(response => {
-                chatContent.removeChild(thinkingMsgDiv);
-                if (!response.ok) {
-                    throw new Error(response.statusText);
+            try {
+                return new Promise((resolve, reject) => {
+                    let timeoutId = setTimeout(() => {
+                        reject(new Error('请求超时'));
+                    }, 30000);
+
+                    GM_xmlhttpRequest({
+                        method: 'POST',
+                        url: config.apiUrl,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${config.apiKey}`,
+                            'Accept': 'text/event-stream'
+                        },
+                        responseType: 'stream',
+                        data: JSON.stringify(requestData),
+                        onloadstart: (response) => {
+                            try {
+                                handleStreamResponse(response, aiMsgDiv)
+                                    .then(resolve)
+                                    .catch(reject);
+                            } catch (error) {
+                                reject(error);
+                            }
+                        },
+                        onerror: (error) => {
+                            clearTimeout(timeoutId);
+                            chatContent.removeChild(thinkingMsgDiv);
+                            reject(new Error('请求失败: ' + error.statusText));
+                        },
+                        ontimeout: () => {
+                            clearTimeout(timeoutId);
+                            chatContent.removeChild(thinkingMsgDiv);
+                            reject(new Error('请求超时'));
+                        }
+                    });
+                });
+            } catch (error) {
+                if (thinkingMsgDiv.parentNode) {
+                    chatContent.removeChild(thinkingMsgDiv);
                 }
-                if (!response.body) {
-                    throw new Error('响应体不可读');
+                
+                let errorMessage = '发生未知错误';
+                if (error.message.includes('timeout')) {
+                    errorMessage = '请求超时,请检查网络连接';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('请求失败')) {
+                    errorMessage = '无法连接到服务器,请检查:\n1. 网络连接\n2. API地址是否正确\n3. 是否开启了代理/VPN';
+                } else if (error.message.includes('401')) {
+                    errorMessage = 'API密钥无效或已过期,请重新设置';
+                } else if (error.message.includes('429')) {
+                    errorMessage = '请求过于频繁,请稍后再试';
+                } else {
+                    errorMessage = `错误: ${error.message}`;
                 }
-                return handleStreamResponse(response, aiMsgDiv);
-            }).catch(error => {
-                chatContent.removeChild(thinkingMsgDiv);
+
                 const errorMsgDiv = document.createElement('div');
                 errorMsgDiv.className = 'ds-chat-message ds-error';
-                errorMsgDiv.innerText = `错误: ${error.message}`;
+                errorMsgDiv.innerText = errorMessage;
                 chatContent.appendChild(errorMsgDiv);
                 chatContent.scrollTop = chatContent.scrollHeight;
-            });
+
+                // 如果是网络错误且重试次数小于3,则自动重试
+                if ((error.message.includes('Failed to fetch') || error.message.includes('请求失败') || error.message.includes('timeout')) && retryCount < 3) {
+                    const retryMsgDiv = document.createElement('div');
+                    retryMsgDiv.className = 'ds-chat-message ds-thinking';
+                    retryMsgDiv.innerText = `连接失败,正在第${retryCount + 1}次重试...`;
+                    chatContent.appendChild(retryMsgDiv);
+                    
+                    setTimeout(() => {
+                        chatContent.removeChild(retryMsgDiv);
+                        return sendMessage(message, retryCount + 1);
+                    }, 2000);
+                }
+            }
         }
 
         // 输入框事件
