@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.6.8
+// @version      2.6.9
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -10,12 +10,10 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
-// @connect      api.deepseek.com
+// @connect      *
 // @license      MIT
 // @resource     icon https://img.alicdn.com/imgextra/i2/O1CN01bYc1m81RrcSAyOjMu_!!6000000002165-54-tps-60-60.apng
 // @grant        GM_getResourceURL
-// @downloadURL https://update.greasyfork.org/scripts/532089/Deepseek%20Chat%20%E5%AE%9E%E6%97%B6%E7%BD%91%E9%A1%B5%E6%A3%80%E7%B4%A2%E5%AF%B9%E8%AF%9D%E5%B7%A5%E5%85%B7%E7%89%88.user.js
-// @updateURL https://update.greasyfork.org/scripts/532089/Deepseek%20Chat%20%E5%AE%9E%E6%97%B6%E7%BD%91%E9%A1%B5%E6%A3%80%E7%B4%A2%E5%AF%B9%E8%AF%9D%E5%B7%A5%E5%85%B7%E7%89%88.meta.js
 // ==/UserScript==
 
 (function() {
@@ -253,10 +251,11 @@
     // 初始化配置
     let config = {
         apiKey: GM_getValue('apiKey', ''),
+        apiUrl: GM_getValue('apiUrl', 'https://api.deepseek.com/v1/chat/completions'), // 新增API URL配置
         model: GM_getValue('model', 'deepseek-chat'),
         temperature: GM_getValue('temperature', 0.7),
         maxTokens: GM_getValue('maxTokens', 4000),
-        maxContextTokens: GM_getValue('maxContextTokens', 32000), // 新增：最大上下文限制
+        maxContextTokens: GM_getValue('maxContextTokens', 32000),
         chatHistory: GM_getValue('chatHistory', []),
         usePageContext: GM_getValue('usePageContext', true),
         personalityPrompt: GM_getValue('personalityPrompt', '你是锐锐，一个18岁、热爱数学的可爱女孩。你性格聪明冷静，内心善良，对朋友真诚，伙伴遇困定会援手相助。\n你外貌甜美，皮肤白皙，大眼睛灵动有神。总是身着背带制服，搭配白色腿袜和小皮鞋，乌黑亮丽的高马尾活泼摆动，头上戴着红色蝴蝶结发箍。充满青春活力。\n你的性格特点：聪明、冷静、犀利、善良、真诚。\n你的说话风格：言辞简洁有力，逻辑清晰，关心朋友时又温柔贴心。')
@@ -264,11 +263,34 @@
 
     // 检查是否已经存在图标
     if (!document.querySelector('.ds-chat-icon')) {
-        // 创建UI元素
+        // 创建UI元素 - 只在body元素下添加
         const icon = document.createElement('div');
         icon.className = 'ds-chat-icon';
         icon.innerHTML = `<img src="${GM_getResourceURL('icon')}" style="width: 30px; height: 30px; border-radius: 50%;">`;
+
+        // 确保只添加到body元素，而不是其他元素
         document.body.appendChild(icon);
+
+        // 确保图标位置固定在右下角
+        icon.style.position = 'fixed';
+        icon.style.bottom = '20px';
+        icon.style.right = '20px';
+        icon.style.zIndex = '2147483647';
+
+        // 添加检查逻辑，确保不在微信登录/广告/弹窗中显示
+        const shouldHideIcon = () => {
+            const popupSelectors = [
+                '.web_qrcode_panel', '.web_qrcode_panel_area',
+                '.ad-container', '.ad-popup', '.popup',
+                '.modal', '.qr-code', '.ad-wrapper',
+                '[role="dialog"]', '[aria-modal="true"]'
+            ];
+            return popupSelectors.some(sel => document.querySelector(sel));
+        };
+
+        if (shouldHideIcon()) {
+            icon.style.display = 'none';
+        }
 
         const chatWindow = document.createElement('div');
         chatWindow.className = 'ds-chat-window';
@@ -382,11 +404,23 @@
         });
 
         settingsBtn.addEventListener('click', () => {
-            const newApiKey = prompt('DeepSeek API密钥:', config.apiKey);
+					  const newApiUrl = prompt('API地址(默认:https://api.deepseek.com/v1/chat/completions):', config.apiUrl);
+            if (newApiUrl !== null) {
+                config.apiUrl = newApiUrl;
+                GM_setValue('apiUrl', config.apiUrl);
+            }
+            const newApiKey = prompt('API密钥:', config.apiKey);
             if (newApiKey !== null) {
                 config.apiKey = newApiKey;
                 GM_setValue('apiKey', config.apiKey);
             }
+
+            // 新增API URL设置
+            /*const newApiUrl = prompt('API地址(默认:https://api.deepseek.com/v1/chat/completions):', config.apiUrl);
+            if (newApiUrl !== null) {
+                config.apiUrl = newApiUrl;
+                GM_setValue('apiUrl', config.apiUrl);
+            }*/
 
             const newModel = prompt('模型默认(deepseek-chat):', config.model);
             if (newModel !== null) {
@@ -394,25 +428,25 @@
                 GM_setValue('model', config.model);
             }
 
-            const newTemp = parseFloat(prompt('Temperature (0-2):建议0.5-0.8:', config.temperature));
+            const newTemp = parseFloat(prompt('Temperature (0-2建议0.5-0.8)', config.temperature));
             if (!isNaN(newTemp) && newTemp >= 0 && newTemp <= 2) {
                 config.temperature = newTemp;
                 GM_setValue('temperature', config.temperature);
             }
 
-            const newMaxTokens = parseInt(prompt('输出Token限制最大不能超过8192默认4000:输出文本', config.maxTokens));
+            const newMaxTokens = parseInt(prompt('输出Token限制最大不能超过8192默认4000(输出文本):', config.maxTokens));
             if (!isNaN(newMaxTokens) && newMaxTokens > 0 && newMaxTokens <= 8192) {
                 config.maxTokens = newMaxTokens;
                 GM_setValue('maxTokens', config.maxTokens);
             }
 
-            const newMaxContextTokens = parseInt(prompt('最大上下文限制128k默认32k:越大记忆越好', config.maxContextTokens));
+            const newMaxContextTokens = parseInt(prompt('最大上下文限制128k默认32k(越大记忆越好):', config.maxContextTokens));
             if (!isNaN(newMaxContextTokens) && newMaxContextTokens > 0 && newMaxContextTokens <= 128000) {
                 config.maxContextTokens = newMaxContextTokens;
                 GM_setValue('maxContextTokens', config.maxContextTokens);
             }
 
-            const newPersonalityPrompt = prompt('自定义人格提示词:锐锐永远爱你!', config.personalityPrompt);
+            const newPersonalityPrompt = prompt('自定义人格提示词:(锐锐永远爱你!)', config.personalityPrompt);
             if (newPersonalityPrompt !== null) {
                 config.personalityPrompt = newPersonalityPrompt;
                 GM_setValue('personalityPrompt', config.personalityPrompt);
@@ -615,7 +649,7 @@ URL: ${pageContent.url}
             }
 
             // 发送请求
-            fetch('https://api.deepseek.com/v1/chat/completions', {
+            fetch(config.apiUrl, {  // 修改为使用配置的API URL
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
