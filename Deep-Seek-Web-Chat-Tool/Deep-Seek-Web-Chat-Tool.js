@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.8.4
+// @version      2.8.5
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -198,6 +198,7 @@
             color: #3e6854;
             border-color: #3e6854;
             background-color: rgba(255, 255, 255, 0.8);
+            box-sizing: border-box;
         }
         /* 鼠标悬停(Hover)效果 */
         .ds-chat-input:hover {
