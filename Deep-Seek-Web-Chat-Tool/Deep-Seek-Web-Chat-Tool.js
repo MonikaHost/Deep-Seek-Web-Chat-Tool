@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.7.6
+// @version      2.8.1
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -267,30 +267,16 @@
         const icon = document.createElement('div');
         icon.className = 'ds-chat-icon';
         icon.innerHTML = `<img src="${GM_getResourceURL('icon')}" style="width: 30px; height: 30px; border-radius: 50%;">`;
-
+        
         // 确保只添加到body元素，而不是其他元素
         document.body.appendChild(icon);
 
-        // 确保图标位置固定在右下角
+        // 确保图标位置固定在右下角5px处
         icon.style.position = 'fixed';
-        icon.style.bottom = '20px';
-        icon.style.right = '20px';
+        icon.style.bottom = '5px';
+        icon.style.right = '5px';
         icon.style.zIndex = '2147483647';
-
-        // 添加检查逻辑，确保不在微信登录/广告/弹窗中显示
-        const shouldHideIcon = () => {
-            const popupSelectors = [
-                '.web_qrcode_panel', '.web_qrcode_panel_area',
-                '.ad-container', '.ad-popup', '.popup',
-                '.modal', '.qr-code', '.ad-wrapper',
-                '[role="dialog"]', '[aria-modal="true"]'
-            ];
-            return popupSelectors.some(sel => document.querySelector(sel));
-        };
-
-        if (shouldHideIcon()) {
-            icon.style.display = 'none';
-        }
+        icon.style.display = 'flex'; // 确保图标默认显示
 
         const chatWindow = document.createElement('div');
         chatWindow.className = 'ds-chat-window';
