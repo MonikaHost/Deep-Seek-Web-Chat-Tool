@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.8.6
+// @version      2.8.7
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -564,6 +564,12 @@
         function handleStreamResponse(response, aiMsgDiv) {
             return new Promise((resolve, reject) => {
                 let aiMessage = '';
+
+                // 移除"思考中..."提示
+                const thinkingMsg = document.querySelector('.ds-thinking');
+                if (thinkingMsg && thinkingMsg.parentNode) {
+                    thinkingMsg.parentNode.removeChild(thinkingMsg);
+                }
 
                 // 确保消息容器结构正确
                 aiMsgDiv.innerHTML = '';
