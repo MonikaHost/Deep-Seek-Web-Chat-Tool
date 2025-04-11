@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.8.5
+// @version      2.8.6
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -157,6 +157,7 @@
             border-bottom: 1px solid #ddd;
         }
         .ds-chat-message {
+            background-color: rgba(227, 242, 253, 0.5); /*测试。  建行卡牛逼呀 */
             margin-bottom: 10px;
             padding: 8px 6px;
             border-radius: 10px;
@@ -259,7 +260,7 @@
             line-height: 1.5;
             padding: 8px 12px;
             margin: 4px 8px;
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
             color: #2372c3 !important;
@@ -272,6 +273,11 @@
             visibility: visible !important;
             opacity: 1 !important;
             min-height: 1em;
+            background: none !important
+            background-color: transparent !important;
+            background-color: transparent !important;
+            background-image: none !important;
+            text-shadow: none !important;
         }
         @keyframes blink {
             0%, 100% { opacity: 1; }
@@ -282,7 +288,8 @@
             content: '|';
             position: relative;
             display: inline;
-            color: #2372c3;
+            color: transparent !important;
+            /*color: #2372c3; */
             animation: blink 1s infinite;
             margin-left: 2px;
         }
