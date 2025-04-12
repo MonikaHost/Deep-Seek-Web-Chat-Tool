@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.8.7
+// @version      2.8.8
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -157,7 +157,7 @@
             border-bottom: 1px solid #ddd;
         }
         .ds-chat-message {
-            background-color: rgba(227, 242, 253, 0.5); /*测试。  建行卡牛逼呀 */
+            background-color: rgba(227, 242, 253, 0.1); /*测试。  建行卡牛逼呀 */
             margin-bottom: 10px;
             padding: 8px 6px;
             border-radius: 10px;
