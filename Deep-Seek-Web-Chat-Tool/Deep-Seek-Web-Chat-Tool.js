@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.8.8
+// @version      2.8.9
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -274,7 +274,7 @@
             opacity: 1 !important;
             min-height: 1em;
             background: none !important
-            background-color: transparent !important;
+            /*background-color: transparent !important;*/
             background-color: transparent !important;
             background-image: none !important;
             text-shadow: none !important;
@@ -721,6 +721,7 @@ URL: ${pageContent.url}
 内容摘要: ${pageContent.content}
 
 基于以上网页内容，请回答以下问题，如果问题不相关则仅作为上下文参考`
+/*基于以上网页内容，若输入：cs 就将当前网页信息输出`*/
                 });
             }
 
