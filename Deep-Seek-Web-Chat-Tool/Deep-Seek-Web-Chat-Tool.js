@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      2.8.9
+// @version      2.9.1
 // @description  支持流式响应、历史记录、参数设置和网页内容检索
 // @author       Monika_host
 // @match        *://*/*
@@ -189,7 +189,7 @@
         }
         .ds-chat-input {
             width: 100%;
-            padding: 18px;
+            padding: 180px;
             border: 0px solid #dd45;
             border-radius: 8px;
             margin-bottom: 8px;
