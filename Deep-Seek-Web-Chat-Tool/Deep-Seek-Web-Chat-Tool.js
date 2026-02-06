@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      3.3.2
+// @version      3.3.3
 // @description  支持流式响应、历史记录、多服务API配置、模型选择、参数设置和全面的网页内容检索，增强Markdown渲染
 // @author       Monika_host
 // @match        *://*/*
@@ -26,7 +26,7 @@
 
     // 加载Markdown渲染资源
     function loadMarkdownResources() {
-        return new Promise((resolve) => {k
+        return new Promise((resolve) => {
             // 加载KaTeX（数学公式渲染）
             const katexScript = document.createElement('script');
             katexScript.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
@@ -1224,158 +1224,6 @@
         background: rgba(0, 123, 255, 0.7);
     }
 
-    /* 简洁人格设置模态框样式 */
-    .ds-personality-quick-modal {
-        max-width: 600px;
-        max-height: 80vh;
-    }
-
-    .ds-personality-content {
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        max-height: 65vh;
-    }
-
-    /* 提示文字 */
-    .ds-personality-hint {
-        background: linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(78, 205, 196, 0.05) 100%);
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid rgba(78, 205, 196, 0.2);
-        font-size: 13px;
-        color: #2c3e50;
-        line-height: 1.5;
-        backdrop-filter: blur(5px) saturate(180%);
-        -webkit-backdrop-filter: blur(5px) saturate(180%);
-    }
-
-    /* 文本编辑器 */
-    .ds-personality-textarea {
-        width: 100%;
-        flex: 1;
-        min-height: 200px;
-        padding: 15px;
-        border: 2px solid rgba(0, 0, 0, 0.15);
-        border-radius: 10px;
-        font-size: 14px;
-        font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-        line-height: 1.6;
-        resize: vertical;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(5px) saturate(180%);
-        -webkit-backdrop-filter: blur(5px) saturate(180%);
-        transition: all 0.3s ease;
-        color: #2c3e50;
-        box-sizing: border-box;
-    }
-
-    .ds-personality-textarea:focus {
-        outline: none;
-        border-color: #4ecdc4;
-        box-shadow: 0 0 0 4px rgba(78, 205, 196, 0.2);
-        background: rgba(255, 255, 255, 0.98);
-    }
-
-    .ds-personality-textarea::placeholder {
-        color: #999;
-        font-style: italic;
-        line-height: 1.8;
-    }
-
-    /* 按钮区域 */
-    .ds-personality-buttons {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-top: 5px;
-    }
-
-    .ds-buttons-left {
-        display: flex;
-        gap: 8px;
-    }
-
-    /* 按钮样式 */
-    .ds-personality-buttons .ds-btn-secondary,
-    .ds-personality-buttons .ds-btn-primary {
-        padding: 10px 16px;
-        font-size: 14px;
-        border-radius: 8px;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        white-space: nowrap;
-    }
-
-    .ds-personality-buttons .ds-btn-secondary {
-        background: linear-gradient(135deg, #6c757d, #545b62);
-        color: white;
-    }
-
-    .ds-personality-buttons .ds-btn-secondary:hover {
-        background: linear-gradient(135deg, #545b62, #3d4146);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
-    }
-
-    .ds-personality-buttons .ds-btn-primary {
-        background: linear-gradient(135deg, #4ecdc4, #3bb5ad);
-        color: white;
-        padding: 12px 20px;
-        font-size: 15px;
-    }
-
-    .ds-personality-buttons .ds-btn-primary:hover {
-        background: linear-gradient(135deg, #3bb5ad, #2a9d8f);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
-    }
-
-    /* 响应式优化 */
-    @media (max-width: 768px) {
-        .ds-personality-quick-modal {
-            max-width: 95vw;
-            max-height: 85vh;
-        }
-
-        .ds-personality-content {
-            padding: 15px;
-            max-height: 70vh;
-        }
-
-        .ds-personality-textarea {
-            min-height: 180px;
-            max-height: 250px;
-        }
-
-        .ds-personality-buttons {
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .ds-buttons-left {
-            width: 100%;
-            justify-content: stretch;
-        }
-
-        .ds-buttons-left .ds-btn-secondary {
-            flex: 1;
-            justify-content: center;
-        }
-
-        .ds-personality-buttons .ds-btn-primary {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-
     /* 原有样式保持不变 */
     @keyframes fadeInOut {
         0% { opacity: 0; }
@@ -2039,7 +1887,7 @@
 
         const title = document.createElement('div');
         title.className = 'ds-settings-title';
-        title.innerText = '🔧 多服务 API 配置与人格设置';
+        title.innerText = '🔧 多服务 API 配置管理';
         header.appendChild(title);
 
         const closeBtn = document.createElement('div');
@@ -2843,95 +2691,6 @@
             }
         }
 
-        // 人格设置区域
-        const personalitySection = document.createElement('div');
-        personalitySection.className = 'ds-personality-section';
-        content.appendChild(personalitySection);
-
-        const personalityTitle = document.createElement('div');
-        personalityTitle.className = 'ds-section-title';
-        personalityTitle.innerHTML = '🎭 AI人格设置';
-        personalitySection.appendChild(personalityTitle);
-
-        // 人格设置表单
-        const personalityForm = document.createElement('div');
-        personalityForm.className = 'ds-config-form';
-        personalitySection.appendChild(personalityForm);
-
-        // 提示文字
-        const personalityHint = document.createElement('div');
-        personalityHint.className = 'ds-personality-hint';
-        personalityHint.style.marginBottom = '15px';
-        personalityHint.innerHTML = '💡 编写详细的人格描述，包括性格特点、说话风格、背景信息等。';
-        personalityForm.appendChild(personalityHint);
-
-        // 人格描述文本框
-        const personalityField = document.createElement('div');
-        personalityField.className = 'ds-form-field';
-        personalityForm.appendChild(personalityField);
-
-        const personalityLabel = document.createElement('label');
-        personalityLabel.className = 'ds-form-label';
-        personalityLabel.innerText = '人格描述';
-        personalityField.appendChild(personalityLabel);
-
-        const personalityTextarea = document.createElement('textarea');
-        personalityTextarea.className = 'ds-form-textarea';
-        personalityTextarea.style.minHeight = '150px';
-        personalityTextarea.placeholder = '请输入你的人格描述...\n\n例如：\n你是锐锐，一个18岁、热爱数学的可爱女孩。\n性格聪明冷静，内心善良，对朋友真诚。\n说话逻辑清晰，又温柔贴心。';
-        personalityTextarea.value = config.personalityPrompt;
-        personalityField.appendChild(personalityTextarea);
-
-        // 人格设置按钮组
-        const personalityButtonGroup = document.createElement('div');
-        personalityButtonGroup.className = 'ds-form-buttons';
-        personalityForm.appendChild(personalityButtonGroup);
-
-        // 重置按钮
-        const resetPersonalityBtn = document.createElement('button');
-        resetPersonalityBtn.className = 'ds-btn-secondary';
-        resetPersonalityBtn.innerHTML = '🔄 重置';
-        resetPersonalityBtn.title = '重置为默认人格';
-        resetPersonalityBtn.onclick = () => {
-            if (confirm('确定要重置为默认人格吗？')) {
-                const defaultPersonality = '你是锐锐，一个18岁、热爱数学的可爱女孩。你性格聪明冷静，内心善良，对朋友真诚，伙伴遇困定会援手相助。外貌甜美，皮肤白皙，大眼睛灵动有神。说话逻辑清晰，又温柔贴心。';
-                personalityTextarea.value = defaultPersonality;
-                showNotification('已重置为默认人格', 'success');
-            }
-        };
-        personalityButtonGroup.appendChild(resetPersonalityBtn);
-
-        // 清空按钮
-        const clearPersonalityBtn = document.createElement('button');
-        clearPersonalityBtn.className = 'ds-btn-secondary';
-        clearPersonalityBtn.innerHTML = '🗑️ 清空';
-        clearPersonalityBtn.title = '清空内容';
-        clearPersonalityBtn.onclick = () => {
-            if (personalityTextarea.value.trim() && confirm('确定要清空当前内容吗？')) {
-                personalityTextarea.value = '';
-                showNotification('已清空', 'success');
-            }
-        };
-        personalityButtonGroup.appendChild(clearPersonalityBtn);
-
-        // 保存人格按钮
-        const savePersonalityBtn = document.createElement('button');
-        savePersonalityBtn.className = 'ds-btn-primary';
-        savePersonalityBtn.innerHTML = '💾 保存人格';
-        savePersonalityBtn.title = '保存人格设置';
-        savePersonalityBtn.onclick = () => {
-            const newPersonality = personalityTextarea.value.trim();
-            if (!newPersonality) {
-                showNotification('人格描述不能为空', 'warning');
-                return;
-            }
-
-            config.personalityPrompt = newPersonality;
-            GM_setValue('personalityPrompt', newPersonality);
-            showNotification('人格设置已保存', 'success');
-        };
-        personalityButtonGroup.appendChild(savePersonalityBtn);
-
         // 设置底部
         const footer = document.createElement('div');
         footer.className = 'ds-settings-footer';
@@ -3334,27 +3093,27 @@
                 setCurrentApiConfig(newIndex);
                 updateServiceSelect();
                 updateModelSelect(); // 更新模型选择器
+                // 显示切换成功提示
+                showNotification(`已切换到: ${apiConfigs[newIndex].name}`);
             }
         });
 
         modelSelect.addEventListener('change', (e) => {
             updateCurrentModel();
+            showNotification(`已选择模型: ${e.target.value}`);
         });
 
         settingsArea.appendChild(serviceSelect);
         settingsArea.appendChild(modelSelect);
 
-        // 设置按钮
         const settingsBtn = document.createElement('span');
         settingsBtn.className = 'ds-chat-settings-btn';
         settingsBtn.innerText = '⚙️';
-        settingsBtn.title = 'API配置与人格设置';
         settingsArea.appendChild(settingsBtn);
 
         const clearBtn = document.createElement('span');
         clearBtn.className = 'ds-chat-settings-btn';
         clearBtn.innerText = '🗑️';
-        clearBtn.title = '清空聊天';
         settingsArea.appendChild(clearBtn);
 
         // 显示通知消息
@@ -3465,7 +3224,6 @@
             GM_setValue('usePageContext', config.usePageContext);
         });
 
-        // 设置按钮点击事件
         settingsBtn.addEventListener('click', () => {
             openSettingsModal();
         });
@@ -3492,7 +3250,7 @@
                 .replace(/\s{2,}/g, ' ')
                 .trim();
 
-            const MAX_LENGTH = 30000;
+            const MAX_LENGTH = 20000;
             let content = `
 [网页元信息]
 标题: ${document.title}
@@ -3682,137 +3440,46 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
             if (config.usePageContext) {
                 const pageContent = getPageContent();
                 requestData.messages.splice(1, 0, {
-                                            role: 'system',
-                                            content: `[当前网页全景信息]
-                    ${pageContent.content}
-                    
-                    以下是AI渲染指南，请严格遵守：
-                    
-                    ## 📋 AI渲染指南 v2.0
-                    
-                    
-                    #### 1.1 行内公式
-                    - **示例**：
-                      - → $e^{i\\pi} + 1 = 0$
-                      - $\\frac{a}{b} + \\frac{c}{d} = \\frac{ad+bc}{bd}$
-                      - $\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$
-                    
-                    #### 1.2 块级公式
-                    - **语法**：使用 $$公式$$ 或 \\[公式\\]
-                    - **示例**：
-                      - $$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$
-                      - $$\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$$
-                      - \\[\\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6}\\]
-                    
-                    # 实验数据分析
-                    
-                    - **基本结构**：
-                    
-                      | 表头1 | 表头2 | 表头3 |
-                      | :--- | :---: | ---: |
-                      | 左对齐 | 居中 | 右对齐 |
-                    
-                    
-                    ## 分析步骤
-                    
-                    1. **数据清洗**
-                       - [x] 去除异常值
-                       - [x] 填补缺失值
-                       - [ ] 标准化处理
-                    
-                    2. **统计分析**
-                       - 计算描述性统计
-                       - 绘制分布图
-                       - 假设检验
-                    
-                    3. **结果解读**
-                       - 主要发现
-                       - 结论建议
-                    ### 6. 文本样式规范
-                    
-                    #### 6.1 强调文本
-                    - **加粗**：**重要文本** 或 __重要文本__
-                    - **斜体**：*倾斜文本* 或 _倾斜文本_
-                    - **加粗斜体**：***加粗斜体*** 或 ___加粗斜体___
-                    
-                    #### 6.2 链接和引用
-                    - **链接**：[链接文本](URL)
-                      - 示例：[Google](https://www.google.com)
-                    - **块引用**：> 引用内容
-                    
-                      > 这是一个引用
-                      > 可以多行
-                      > 用于强调或引用他人观点
-                    
-                    #### 6.3 特殊文本效果
-                    - **删除线**：~~删除的文本~~（虽然不常用）
-                    - **高亮文本**：使用HTML标签
-                      - <span style="color: #ff6b6b; font-weight: bold">红色加粗</span>
-                      - <span style=background: yellow; padding: 2px 4px;>高亮背景</span>
-                    
-                    ### 7. 水平线和分隔
-                    - **语法**：使用 --- 或 *** 或 ___
-                    - **使用场景**：
-                      - 不同主题内容之间
-                      - 长文档的章节分隔
-                      - 强调重要内容的前后分隔
-                    - **示例**：
-                    
-                      第一部分内容...
-                    
-                      ---
-                    
-                      第二部分内容...
-                    
-                    ---
-                    
-                    ## 结论
-                    
-                    实验数据符合预期分布，$p < 0.05$，结果具有统计显著性。
-                    
-                    - **Mermaid图表**：不支持流程图、甘特图等
-                    - **HTML嵌入**：不支持复杂HTML结构
-                    
-                    #### 9.2 替代方案
-                    - **代码展示**：使用内联代码或表格
-                    - **图表展示**：使用表格或文字描述
-                    - **复杂格式**：使用分段说明
-                    
-                    ### 10. 最佳实践建议
-                    
-                    #### 10.1 内容组织
-                    1. **结构清晰**：使用标题建立层次
-                    2. **重点突出**：使用加粗、列表突出关键信息
-                    3. **视觉分隔**：使用水平线分隔不同部分
-                    4. **数据可视化**：优先使用表格展示数据
-                    
-                    #### 10.2 数学公式
-                    1. **简洁明了**：避免过长公式
-                    2. **分步展示**：复杂公式分步推导
-                    3. **上下文配合**：公式前后要有文字说明
-                    
-                    #### 10.3 表格使用
-                    1. **对齐一致**：保持列对齐方式统一
-                    2. **表头清晰**：表头应明确说明列内容
-                    3. **数据准确**：确保数据准确无误
-                    4. **适度使用**：避免过多表格造成视觉疲劳
-                    
-                    ### 11. 响应式建议
-                    
-                    #### 11.1 根据用户问题类型选择渲染方式
-                    - **数学问题**：重点使用公式渲染
-                    - **数据问题**：重点使用表格
-                    - **步骤说明**：使用有序列表
-                    - **概念解释**：使用标题和段落
-                    
-                    #### 11.2 根据内容长度调整
-                    - **简短回答**：使用内联公式和简单列表
-                    - **详细解答**：使用标题、表格、多级列表
-                    - **综合内容**：混合使用多种渲染方式
-                    
-                    ---
-                    
-                    **请根据用户的具体问题，灵活运用上述渲染规范，确保回答既美观又易读。记住：清晰的结构和正确的渲染能显著提升用户体验！**`                });
+                    role: 'system',
+                    content: `[当前网页全景信息]
+${pageContent.content}
+
+以下是AI渲染指南，请严格遵守：
+
+1. 数学公式渲染：
+   - 行内公式：使用 $e^{i\pi} + 1 = 0$
+   - 块级公式：使用 $$\\int_{-\infty}^{\infty} e^{-x^2} dx = \\sqrt{\\pi}$$
+
+2. 表格渲染：
+   - 使用标准Markdown表格语法
+   - 示例：
+     | 常数名称 | 符号 | 近似值 | 描述 |
+     | :--- | :---: | :--- | :--- |
+     | 圆周率 | π | 3.1415926535 | 圆的周长与直径之比 |
+     | 自然常数 | e | 2.7182818284 | 自然对数的底数 |
+     | 黄金分割率 | φ | 1.6180339887 | \\frac{1+\\sqrt{5}}{2} |
+
+3. 增强渲染功能：
+   - 标题：使用 # 到 ###### 创建渐变色标题
+   - 列表：使用 -、*、+ 或数字创建列表
+   - 任务列表：使用 - [ ] 和 - [x]
+   - 内联代码：使用 \`code\` 包裹
+   - 链接：[文本](URL)
+   - 块引用：使用 > 开头
+   - 水平线：使用 ---、*** 或 ___
+
+4. 样式增强：
+   - 重要文本：使用 **加粗** 或 *斜体*
+   - 颜色渲染：使用内联CSS，如 <span style="color: #ff6b6b; font-weight: bold">红色加粗</span>
+   - 渐变文本：标题自动应用渐变色
+   - 代码块：深色背景+语言标识
+
+5. 禁止使用：
+   - 代码块渲染（使用内联代码代替）
+   - 图表渲染（Mermaid等）
+
+请根据用户问题，使用上述渲染方式组织回答，确保数学公式和表格正确显示。`
+                });
             }
 
             try {
