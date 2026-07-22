@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      3.3.3
-// @description  支持流式响应、历史记录、多服务API配置、模型选择、参数设置和全面的网页内容检索，增强Markdown渲染
+// @version      3.4.5
+// @description  支持流式响应、历史记录、多服务API配置、模型选择、参数设置、Agent浏览器操控（参考pi-agent-browser），增强Markdown渲染
 // @author       Monika_host
 // @match        *://*/*
 // @grant        GM_getValue
@@ -18,6 +18,8 @@
 // @resource     icon https://img.alicdn.com/imgextra/i2/O1CN01bYc1m81RrcSAyOjMu_!!6000000002165-54-tps-60-60.apng
 // @resource     icon_backup https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/deepseek.svg
 // @grant        GM_getResourceURL
+// @require      https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js
 // @icon         https://deepseek.com/favicon.ico
 // ==/UserScript==
 
@@ -240,7 +242,17 @@
         output = output.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         output = output.replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-        // 7. 处理内联代码
+        // 7. 处理代码块（fenced code blocks，支持 ``` 和 ``）
+        output = output.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+            var langClass = lang ? ' class="language-' + lang + '"' : '';
+            return '<pre><code' + langClass + '>' + code.trim() + '</code></pre>';
+        });
+        output = output.replace(/``(\w*)\n([\s\S]*?)``/g, (match, lang, code) => {
+            var langClass = lang ? ' class="language-' + lang + '"' : '';
+            return '<pre><code' + langClass + '>' + code.trim() + '</code></pre>';
+        });
+
+        // 8. 处理内联代码
         output = output.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
 
         // 8. 处理链接
@@ -362,20 +374,21 @@
         border-spacing: 0;
         width: 100%;
         margin: 15px 0;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(0, 0, 0, 0.15);
         border-radius: 8px;
         overflow: hidden;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .ds-markdown-table th {
-        background: linear-gradient(135deg, rgba(0, 123, 255, 0.3), rgba(0, 86, 179, 0.3));
+        background: linear-gradient(135deg, rgba(0, 123, 255, 0.6), rgba(0, 86, 179, 0.6));
         color: #ffffff;
         font-weight: bold;
         padding: 12px 15px;
         text-align: center;
-        border-bottom: 2px solid rgba(0, 123, 255, 0.5);
+        border-bottom: 2px solid rgba(0, 86, 179, 0.8);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
     .ds-markdown-table th:first-child {
@@ -388,16 +401,16 @@
 
     .ds-markdown-table td {
         padding: 10px 15px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        color: #e0e0e0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        color: #2c3e50;
     }
 
     .ds-markdown-table tr:nth-child(even) {
-        background: rgba(255, 255, 255, 0.02);
+        background: rgba(0, 0, 0, 0.04);
     }
 
     .ds-markdown-table tr:hover {
-        background: rgba(0, 123, 255, 0.1);
+        background: rgba(0, 123, 255, 0.15);
         transition: background 0.3s ease;
     }
 
@@ -1224,6 +1237,158 @@
         background: rgba(0, 123, 255, 0.7);
     }
 
+    /* 简洁人格设置模态框样式 */
+    .ds-personality-quick-modal {
+        max-width: 600px;
+        max-height: 80vh;
+    }
+
+    .ds-personality-content {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        max-height: 65vh;
+    }
+
+    /* 提示文字 */
+    .ds-personality-hint {
+        background: linear-gradient(135deg, rgba(78, 205, 196, 0.1) 0%, rgba(78, 205, 196, 0.05) 100%);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(78, 205, 196, 0.2);
+        font-size: 13px;
+        color: #2c3e50;
+        line-height: 1.5;
+        backdrop-filter: blur(5px) saturate(180%);
+        -webkit-backdrop-filter: blur(5px) saturate(180%);
+    }
+
+    /* 文本编辑器 */
+    .ds-personality-textarea {
+        width: 100%;
+        flex: 1;
+        min-height: 200px;
+        padding: 15px;
+        border: 2px solid rgba(0, 0, 0, 0.15);
+        border-radius: 10px;
+        font-size: 14px;
+        font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        line-height: 1.6;
+        resize: vertical;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(5px) saturate(180%);
+        -webkit-backdrop-filter: blur(5px) saturate(180%);
+        transition: all 0.3s ease;
+        color: #2c3e50;
+        box-sizing: border-box;
+    }
+
+    .ds-personality-textarea:focus {
+        outline: none;
+        border-color: #4ecdc4;
+        box-shadow: 0 0 0 4px rgba(78, 205, 196, 0.2);
+        background: rgba(255, 255, 255, 0.98);
+    }
+
+    .ds-personality-textarea::placeholder {
+        color: #999;
+        font-style: italic;
+        line-height: 1.8;
+    }
+
+    /* 按钮区域 */
+    .ds-personality-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-top: 5px;
+    }
+
+    .ds-buttons-left {
+        display: flex;
+        gap: 8px;
+    }
+
+    /* 按钮样式 */
+    .ds-personality-buttons .ds-btn-secondary,
+    .ds-personality-buttons .ds-btn-primary {
+        padding: 10px 16px;
+        font-size: 14px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .ds-personality-buttons .ds-btn-secondary {
+        background: linear-gradient(135deg, #6c757d, #545b62);
+        color: white;
+    }
+
+    .ds-personality-buttons .ds-btn-secondary:hover {
+        background: linear-gradient(135deg, #545b62, #3d4146);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    }
+
+    .ds-personality-buttons .ds-btn-primary {
+        background: linear-gradient(135deg, #4ecdc4, #3bb5ad);
+        color: white;
+        padding: 12px 20px;
+        font-size: 15px;
+    }
+
+    .ds-personality-buttons .ds-btn-primary:hover {
+        background: linear-gradient(135deg, #3bb5ad, #2a9d8f);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
+    }
+
+    /* 响应式优化 */
+    @media (max-width: 768px) {
+        .ds-personality-quick-modal {
+            max-width: 95vw;
+            max-height: 85vh;
+        }
+
+        .ds-personality-content {
+            padding: 15px;
+            max-height: 70vh;
+        }
+
+        .ds-personality-textarea {
+            min-height: 180px;
+            max-height: 250px;
+        }
+
+        .ds-personality-buttons {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ds-buttons-left {
+            width: 100%;
+            justify-content: stretch;
+        }
+
+        .ds-buttons-left .ds-btn-secondary {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .ds-personality-buttons .ds-btn-primary {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
     /* 原有样式保持不变 */
     @keyframes fadeInOut {
         0% { opacity: 0; }
@@ -1718,6 +1883,28 @@
         margin-right: 5px;
     }
 
+    /* Agent模式激活状态指示器 */
+    .ds-chat-header.agent-active {
+        background: linear-gradient(135deg, rgba(156, 39, 176, 0.6) 0%, rgba(103, 58, 183, 0.6) 100%) !important;
+        border-bottom: 2px solid rgba(156, 39, 176, 0.8);
+    }
+
+    .ds-chat-header.agent-active .ds-chat-title::after {
+        content: ' 🤖';
+        animation: pulse 1.5s infinite;
+    }
+
+    .ds-agent-status {
+        display: inline-block;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        background: rgba(156, 39, 176, 0.3);
+        color: #fff;
+        margin-left: 6px;
+        vertical-align: middle;
+    }
+
     .ds-context-summary {
         font-size: 11px;
         color: #666;
@@ -1775,7 +1962,428 @@
     .ds-message-content:not(:empty)::after {
         display: none;
     }
+
+    /* Agent Console Panel - Terminal Style */
+    .ds-console-panel {
+        background: #0d1117;
+        border-top: 1px solid #30363d;
+        border-bottom: 1px solid #30363d;
+        font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #8b949e;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        position: relative;
+    }
+
+    .ds-console-panel.active {
+        max-height: 240px;
+        overflow-y: auto;
+    }
+
+    .ds-console-content {
+        padding: 8px 12px;
+    }
+
+    .ds-console-line {
+        white-space: pre-wrap;
+        word-break: break-all;
+        padding: 1px 0;
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+
+    .ds-console-prompt {
+        color: #7ee787;
+        user-select: none;
+        flex-shrink: 0;
+    }
+
+    .ds-console-cmd {
+        color: #ffa657;
+    }
+
+    .ds-console-result {
+        color: #8b949e;
+    }
+
+    .ds-console-success {
+        color: #3fb950;
+    }
+
+    .ds-console-error {
+        color: #f85149;
+    }
+
+    .ds-console-info {
+        color: #58a6ff;
+    }
+
+    .ds-console-separator {
+        border: none;
+        border-top: 1px solid #21262d;
+        margin: 4px 0;
+    }
+
+    .ds-console-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 12px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+        font-size: 11px;
+        color: #8b949e;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .ds-console-header:hover {
+        background: #1c2128;
+    }
+
+    .ds-console-header .ds-console-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ds-console-header .ds-console-clear {
+        cursor: pointer;
+        color: #8b949e;
+        font-size: 14px;
+        padding: 0 4px;
+    }
+
+    .ds-console-header .ds-console-clear:hover {
+        color: #f85149;
+    }
+
+    .ds-console-panel::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .ds-console-panel::-webkit-scrollbar-track {
+        background: #0d1117;
+    }
+
+    .ds-console-panel::-webkit-scrollbar-thumb {
+        background: #30363d;
+        border-radius: 3px;
+    }
+
+    /* Console badge in header */
+    .ds-console-badge {
+        display: inline-block;
+        font-size: 9px;
+        padding: 1px 5px;
+        border-radius: 6px;
+        background: #238636;
+        color: #fff;
+        margin-left: 4px;
+        vertical-align: middle;
+    }
     `);
+
+
+// ============================================================
+// BrowserAgent — 浏览器控制代理 (参考 pi-agent-browser 设计)
+// ============================================================
+class BrowserAgent {
+    constructor() {
+        this.elements = {};
+        this.refIndex = 1;
+        this.screenshotCount = 0;
+    }
+
+    static getToolDescriptions() {
+        var desc = `
+## Browser Agent Tools
+
+You are a browser AI agent that controls the browser to accomplish user goals.
+
+### Available Commands (all in [TOOL] prefix)
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| navigate <url> | Navigate to URL | navigate https://www.google.com |
+| snapshot -i | List interactive elements with @ref handles | snapshot -i |
+| click @eN | Click an element | click @e3 |
+| fill @eN "text" | Clear field and type text | fill @e5 "search query" |
+| type @eN "text" | Type text without clearing | type @e5 "more text" |
+| select @eN "value" | Select dropdown option | select @e7 "Option B" |
+| press <key> | Press a keyboard key | press Enter |
+| scroll down [px] | Scroll down | scroll down 500 |
+| scroll up [px] | Scroll up | scroll up 200 |
+| get text | Get page body text | get text |
+| get title | Get page title | get title |
+| get url | Get current URL | get url |
+| extract @eN | Get element text content | extract @e1 |
+| screenshot | Take a screenshot (base64 image) | screenshot |
+| wait <ms> | Wait for milliseconds | wait 2000 |
+| done | Task complete, summarize results | done |
+
+### @ref System
+snapshot -i returns elements as:
+@e1 <button> "Search" [100,200 80x36]
+@e2 <input> type=text placeholder="Type here"
+
+### Workflow
+1. navigate to target page then wait 2000
+2. snapshot -i to see interactive elements
+3. click/fill/select to interact
+4. wait 1500 then snapshot -i or screenshot to check
+5. Repeat until goal is achieved
+6. done to finish and summarize
+
+### Rules
+- Always wait after navigation/actions for page to respond
+- Use snapshot -i after each interaction to see what changed
+- Keep going until the user's goal is fully achieved
+- When done, use done and provide a clear summary
+`;
+        return desc;
+    }
+
+    reset() {
+        this.elements = {};
+        this.refIndex = 1;
+    }
+
+    snapshot() {
+        this.elements = {};
+        this.refIndex = 1;
+        const selectors = [
+            'a[href]', 'button',
+            'input:not([type="hidden"]):not([type="submit"]):not([type="reset"])', 'textarea', 'select',
+            '[contenteditable]', '[tabindex]:not([tabindex="-1"])',
+            '[onclick]', '[role="button"]', '[role="link"]',
+            '[role="tab"]', '[role="menuitem"]', '[role="option"]',
+            '[role="checkbox"]', '[role="radio"]', '[role="switch"]',
+            'details summary', 'label'
+        ];
+        const allElements = document.querySelectorAll(selectors.join(','));
+        const result = [];
+        allElements.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+            const ref = '@e' + this.refIndex;
+            this.elements[ref] = el;
+            this.refIndex++;
+            const tag = el.tagName.toLowerCase();
+            const text = (el.textContent || '').trim().substring(0, 120);
+            const attrs = {};
+            if (el.type) attrs.type = el.type;
+            if (el.name) attrs.name = el.name;
+            if (el.href) attrs.href = el.href.substring(0, 200);
+            if (el.placeholder) attrs.placeholder = el.placeholder;
+            const pos = Math.round(rect.left) + ',' + Math.round(rect.top) + ' ' + Math.round(rect.width) + 'x' + Math.round(rect.height);
+            result.push({ ref: ref, tag: tag, text: text, attrs: attrs, pos: pos });
+        });
+        return result;
+    }
+
+    _resolve(ref) {
+        if (this.elements[ref]) return this.elements[ref];
+        var num = parseInt(ref.replace('@e', ''));
+        if (!isNaN(num)) {
+            var key = '@e' + num;
+            if (this.elements[key]) return this.elements[key];
+        }
+        return null;
+    }
+
+    _simulateClick(el) {
+        el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+        el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+        el.click();
+    }
+
+    click(ref) {
+        var el = this._resolve(ref);
+        if (!el) return { error: 'Element ' + ref + ' not found. Re-snapshot.' };
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        this._simulateClick(el);
+        return { success: true, ref: ref, tag: el.tagName.toLowerCase(), text: (el.textContent || '').trim().substring(0, 80) };
+    }
+
+    fill(ref, text) {
+        var el = this._resolve(ref);
+        if (!el) return { error: 'Element ' + ref + ' not found' };
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+        el.value = '';
+        el.value = text;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        el.dispatchEvent(new Event('blur', { bubbles: true }));
+        return { success: true, ref: ref, value: text };
+    }
+
+    type(ref, text) {
+        var el = this._resolve(ref);
+        if (!el) return { error: 'Element ' + ref + ' not found' };
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+        var start = el.selectionStart || el.value.length;
+        var end = el.selectionEnd || el.value.length;
+        el.value = el.value.substring(0, start) + text + el.value.substring(end);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        return { success: true, ref: ref, value: el.value };
+    }
+
+    select(ref, value) {
+        var el = this._resolve(ref);
+        if (!el) return { error: 'Element ' + ref + ' not found' };
+        if (el.tagName !== 'SELECT') return { error: ref + ' is not a select element' };
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.value = value;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return { success: true, ref: ref, selected: el.value };
+    }
+
+    press(key) {
+        var keyMap = { 'enter': 'Enter', 'tab': 'Tab', 'escape': 'Escape', 'esc': 'Escape', 'backspace': 'Backspace', 'delete': 'Delete', 'space': ' ' };
+        var normalizedKey = keyMap[key.toLowerCase()] || key;
+        var activeEl = document.activeElement;
+        if (activeEl) {
+            activeEl.dispatchEvent(new KeyboardEvent('keydown', { key: normalizedKey, bubbles: true, cancelable: true }));
+            activeEl.dispatchEvent(new KeyboardEvent('keyup', { key: normalizedKey, bubbles: true, cancelable: true }));
+        }
+        if (normalizedKey === 'Enter' && activeEl && activeEl.form) {
+            var submitBtn = activeEl.form.querySelector('button[type="submit"], input[type="submit"]');
+            if (submitBtn) setTimeout(function() { submitBtn.click(); }, 100);
+        }
+        return { success: true, key: normalizedKey };
+    }
+
+    scroll(direction, px) {
+        if (!px) px = 300;
+        var amount = direction === 'up' ? -px : px;
+        window.scrollBy({ top: amount, left: 0, behavior: 'smooth' });
+        return { success: true, direction: direction, px: px, newPosition: window.scrollY };
+    }
+
+    getText() {
+        var text = document.body.innerText.replace(/[\n\r\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+        return { url: location.href, title: document.title, text: text.substring(0, 3000) + (text.length > 3000 ? '...' : '') };
+    }
+
+    getTitle() { return { title: document.title }; }
+    getUrl() { return { url: location.href }; }
+
+    extract(ref) {
+        var el = this._resolve(ref);
+        if (!el) return { error: 'Element ' + ref + ' not found' };
+        return { ref: ref, text: (el.textContent || '').trim().substring(0, 2000) };
+    }
+
+    async screenshot() {
+        try {
+            if (typeof html2canvas === 'undefined') {
+                await new Promise(function(resolve, reject) {
+                    var s = document.createElement('script');
+                    s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+                    s.onload = resolve; s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            }
+            var canvas = await html2canvas(document.body, {
+                useCORS: true, allowTaint: true, backgroundColor: '#ffffff',
+                scale: 0.8, logging: false,
+                width: Math.min(document.body.scrollWidth, 1920),
+                height: Math.min(document.body.scrollHeight, 10800)
+            });
+            this.screenshotCount++;
+            return { success: true, screenshot: canvas.toDataURL('image/jpeg', 0.6), size: canvas.width + 'x' + canvas.height };
+        } catch (e) {
+            return { warning: 'Screenshot failed, using text snapshot', error: e.message, textSnapshot: this.getText() };
+        }
+    }
+
+    wait(ms) {
+        return new Promise(function(resolve) { setTimeout(resolve, Math.min(ms, 10000)); });
+    }
+
+    async executeCommand(line) {
+        line = line.trim();
+        if (!line) return null;
+        var parts = line.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+        if (parts.length === 0) return null;
+        var cmd = parts[0].toLowerCase();
+        var args = parts.slice(1).map(function(a) { return a.replace(/^"(.*)"$/, '$1'); });
+        switch (cmd) {
+            case 'navigate': if (args[0]) { location.href = args[0]; return { info: 'Navigating to ' + args[0] + '...' }; } return { error: 'Usage: navigate <url>' };
+            case 'snapshot':
+                if (args[0] === '-i') {
+                    var elements = this.snapshot();
+                    if (elements.length === 0) return { info: 'No interactive elements found', elements: [] };
+                    var formatted = elements.map(function(e) {
+                        var s = e.ref + ' <' + e.tag + '>';
+                        if (e.text) s += ' "' + e.text.substring(0, 80) + '"';
+                        s += ' [' + e.pos + ']';
+                        if (e.attrs.type) s += ' type=' + e.attrs.type;
+                        if (e.attrs.placeholder) s += ' placeholder="' + e.attrs.placeholder + '"';
+                        if (e.attrs.href) s += ' href=' + e.attrs.href.substring(0, 100);
+                        return s;
+                    }).join('\n');
+                    return { info: 'Found ' + elements.length + ' interactive elements', elements: elements, formatted: formatted };
+                }
+                return { error: 'Usage: snapshot -i' };
+            case 'click': if (args[0]) return this.click(args[0]); return { error: 'Usage: click @eN' };
+            case 'fill': if (args.length >= 2) return this.fill(args[0], args.slice(1).join(' ')); return { error: 'Usage: fill @eN "text"' };
+            case 'type': if (args.length >= 2) return this.type(args[0], args.slice(1).join(' ')); return { error: 'Usage: type @eN "text"' };
+            case 'select': if (args.length >= 2) return this.select(args[0], args[1]); return { error: 'Usage: select @eN "value"' };
+            case 'press': if (args[0]) return this.press(args[0]); return { error: 'Usage: press <key>' };
+            case 'scroll':
+                if (args[0] === 'down' || args[0] === 'up') {
+                    var px = parseInt(args[1]) || 300;
+                    return this.scroll(args[0], px);
+                }
+                return { error: 'Usage: scroll down/up [px]' };
+            case 'get':
+                if (args[0] === 'text') return this.getText();
+                if (args[0] === 'title') return this.getTitle();
+                if (args[0] === 'url') return this.getUrl();
+                return { error: 'Usage: get text|title|url' };
+            case 'extract': if (args[0]) return this.extract(args[0]); return { error: 'Usage: extract @eN' };
+            case 'screenshot': return await this.screenshot();
+            case 'wait': var ms = parseInt(args[0]) || 1000; await this.wait(ms); return { info: 'Waited ' + ms + 'ms' };
+            case 'done': return { done: true, info: 'Task complete' };
+            default: return null;
+        }
+    }
+
+    extractCommands(text) {
+        var commands = [];
+        // 匹配 [TOOL] 开头的行，每行一个命令
+        var lines = text.split('\n');
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            var match = line.match(/^\[TOOL\]\s*(.+)$/i);
+            if (match) {
+                commands.push(match[1].trim());
+            }
+        }
+        // 如果没有 [TOOL] 前缀，尝试直接匹配合法命令
+        if (commands.length === 0) {
+            for (var j = 0; j < lines.length; j++) {
+                var trimmed = lines[j].trim();
+                if (/^(navigate|snapshot|click|fill|type|select|press|scroll|get|extract|screenshot|wait|done)\b/i.test(trimmed)) {
+                    commands.push(trimmed);
+                }
+            }
+        }
+        return commands;
+    }
+}
+// ============================================================
+// End BrowserAgent
+// ============================================================
+
 
     // 初始化API配置
     let apiConfigs = GM_getValue('apiConfigs', [
@@ -1823,6 +2431,8 @@
     let config = {
         chatHistory: GM_getValue('chatHistory', []),
         usePageContext: GM_getValue('usePageContext', true),
+        browserAgentMode: GM_getValue('browserAgentMode', false),
+        agentMaxIterations: GM_getValue('agentMaxIterations', 25),
         personalityPrompt: GM_getValue('personalityPrompt', '你是锐锐，一个18岁、热爱数学的可爱女孩。你性格聪明冷静，内心善良，对朋友真诚，伙伴遇困定会援手相助。\n你外貌甜美，皮肤白皙，大眼睛灵动有神。总是身着背带制服，搭配白色腿袜和小皮鞋，乌黑亮丽的高马尾活泼摆动，头上戴着红色蝴蝶结发箍。充满青春活力。\n你的性格特点:聪明、冷静、善良、真诚。\n你的说话风格:逻辑清晰，又温柔贴心。')
     };
 
@@ -1887,7 +2497,7 @@
 
         const title = document.createElement('div');
         title.className = 'ds-settings-title';
-        title.innerText = '🔧 多服务 API 配置管理';
+        title.innerText = '🔧 多服务 API 配置与人格设置';
         header.appendChild(title);
 
         const closeBtn = document.createElement('div');
@@ -2691,6 +3301,95 @@
             }
         }
 
+        // 人格设置区域
+        const personalitySection = document.createElement('div');
+        personalitySection.className = 'ds-personality-section';
+        content.appendChild(personalitySection);
+
+        const personalityTitle = document.createElement('div');
+        personalityTitle.className = 'ds-section-title';
+        personalityTitle.innerHTML = '🎭 AI人格设置';
+        personalitySection.appendChild(personalityTitle);
+
+        // 人格设置表单
+        const personalityForm = document.createElement('div');
+        personalityForm.className = 'ds-config-form';
+        personalitySection.appendChild(personalityForm);
+
+        // 提示文字
+        const personalityHint = document.createElement('div');
+        personalityHint.className = 'ds-personality-hint';
+        personalityHint.style.marginBottom = '15px';
+        personalityHint.innerHTML = '💡 编写详细的人格描述，包括性格特点、说话风格、背景信息等。';
+        personalityForm.appendChild(personalityHint);
+
+        // 人格描述文本框
+        const personalityField = document.createElement('div');
+        personalityField.className = 'ds-form-field';
+        personalityForm.appendChild(personalityField);
+
+        const personalityLabel = document.createElement('label');
+        personalityLabel.className = 'ds-form-label';
+        personalityLabel.innerText = '人格描述';
+        personalityField.appendChild(personalityLabel);
+
+        const personalityTextarea = document.createElement('textarea');
+        personalityTextarea.className = 'ds-form-textarea';
+        personalityTextarea.style.minHeight = '150px';
+        personalityTextarea.placeholder = '请输入你的人格描述...\n\n例如：\n你是锐锐，一个18岁、热爱数学的可爱女孩。\n性格聪明冷静，内心善良，对朋友真诚。\n说话逻辑清晰，又温柔贴心。';
+        personalityTextarea.value = config.personalityPrompt;
+        personalityField.appendChild(personalityTextarea);
+
+        // 人格设置按钮组
+        const personalityButtonGroup = document.createElement('div');
+        personalityButtonGroup.className = 'ds-form-buttons';
+        personalityForm.appendChild(personalityButtonGroup);
+
+        // 重置按钮
+        const resetPersonalityBtn = document.createElement('button');
+        resetPersonalityBtn.className = 'ds-btn-secondary';
+        resetPersonalityBtn.innerHTML = '🔄 重置';
+        resetPersonalityBtn.title = '重置为默认人格';
+        resetPersonalityBtn.onclick = () => {
+            if (confirm('确定要重置为默认人格吗？')) {
+                const defaultPersonality = '你是锐锐，一个18岁、热爱数学的可爱女孩。你性格聪明冷静，内心善良，对朋友真诚，伙伴遇困定会援手相助。外貌甜美，皮肤白皙，大眼睛灵动有神。说话逻辑清晰，又温柔贴心。';
+                personalityTextarea.value = defaultPersonality;
+                showNotification('已重置为默认人格', 'success');
+            }
+        };
+        personalityButtonGroup.appendChild(resetPersonalityBtn);
+
+        // 清空按钮
+        const clearPersonalityBtn = document.createElement('button');
+        clearPersonalityBtn.className = 'ds-btn-secondary';
+        clearPersonalityBtn.innerHTML = '🗑️ 清空';
+        clearPersonalityBtn.title = '清空内容';
+        clearPersonalityBtn.onclick = () => {
+            if (personalityTextarea.value.trim() && confirm('确定要清空当前内容吗？')) {
+                personalityTextarea.value = '';
+                showNotification('已清空', 'success');
+            }
+        };
+        personalityButtonGroup.appendChild(clearPersonalityBtn);
+
+        // 保存人格按钮
+        const savePersonalityBtn = document.createElement('button');
+        savePersonalityBtn.className = 'ds-btn-primary';
+        savePersonalityBtn.innerHTML = '💾 保存人格';
+        savePersonalityBtn.title = '保存人格设置';
+        savePersonalityBtn.onclick = () => {
+            const newPersonality = personalityTextarea.value.trim();
+            if (!newPersonality) {
+                showNotification('人格描述不能为空', 'warning');
+                return;
+            }
+
+            config.personalityPrompt = newPersonality;
+            GM_setValue('personalityPrompt', newPersonality);
+            showNotification('人格设置已保存', 'success');
+        };
+        personalityButtonGroup.appendChild(savePersonalityBtn);
+
         // 设置底部
         const footer = document.createElement('div');
         footer.className = 'ds-settings-footer';
@@ -2945,6 +3644,24 @@
         chatTitle.innerText = 'Deepseek Chat';
         chatHeader.appendChild(chatTitle);
 
+        // Agent mode status indicator
+        var agentStatus = document.createElement('span');
+        agentStatus.className = 'ds-agent-status';
+        agentStatus.style.display = 'none';
+        chatTitle.appendChild(agentStatus);
+
+        function updateAgentStatus() {
+            if (config.browserAgentMode) {
+                agentStatus.style.display = 'inline-block';
+                agentStatus.textContent = '🤖 Agent';
+                chatHeader.classList.add('agent-active');
+            } else {
+                agentStatus.style.display = 'none';
+                chatHeader.classList.remove('agent-active');
+            }
+        }
+        updateAgentStatus();
+
         const headerButtons = document.createElement('div');
         headerButtons.style.display = 'flex';
         headerButtons.style.alignItems = 'center';
@@ -2967,6 +3684,135 @@
         chatContent.className = 'ds-chat-content';
         chatWindow.appendChild(chatContent);
 
+        // Agent Console Panel
+        var consolePanel = document.createElement('div');
+        consolePanel.className = 'ds-console-panel';
+        chatWindow.appendChild(consolePanel);
+
+        var consoleHeader = document.createElement('div');
+        consoleHeader.className = 'ds-console-header';
+        consoleHeader.title = '点击展开/收起控制台';
+        consolePanel.appendChild(consoleHeader);
+
+        var consoleTitle = document.createElement('div');
+        consoleTitle.className = 'ds-console-title';
+        consoleTitle.innerHTML = '▶ 终端控制台 <span class="ds-console-badge">Agent</span>';
+        consoleHeader.appendChild(consoleTitle);
+
+        var consoleClear = document.createElement('span');
+        consoleClear.className = 'ds-console-clear';
+        consoleClear.textContent = '✖';
+        consoleClear.title = '清空控制台';
+        consoleHeader.appendChild(consoleClear);
+
+        var consoleContent = document.createElement('div');
+        consoleContent.className = 'ds-console-content';
+        consolePanel.appendChild(consoleContent);
+
+        // Console state
+        var consoleVisible = false;
+
+        // Toggle console on header click
+        consoleHeader.addEventListener('click', function(e) {
+            if (e.target === consoleClear) return;
+            consoleVisible = !consoleVisible;
+            consolePanel.classList.toggle('active', consoleVisible);
+            consoleHeader.querySelector('.ds-console-title').innerHTML = (consoleVisible ? '▼' : '▶') + ' 终端控制台 <span class="ds-console-badge">Agent</span>';
+        });
+
+        // Clear console
+        consoleClear.addEventListener('click', function() {
+            consoleContent.innerHTML = '';
+        });
+
+        // Console log function
+        function consoleLog(cmd, result, type) {
+            var line = document.createElement('div');
+            line.className = 'ds-console-line';
+
+            var prompt = document.createElement('span');
+            prompt.className = 'ds-console-prompt';
+            prompt.textContent = '$';
+            line.appendChild(prompt);
+
+            var cmdSpan = document.createElement('span');
+            cmdSpan.className = 'ds-console-cmd';
+            cmdSpan.textContent = cmd;
+            line.appendChild(cmdSpan);
+
+            consoleContent.appendChild(line);
+
+            if (result) {
+                var resultLine = document.createElement('div');
+                resultLine.className = 'ds-console-line';
+                var resultSpan = document.createElement('span');
+                resultSpan.style.marginLeft = '14px';
+
+                if (type === 'error') {
+                    resultSpan.className = 'ds-console-error';
+                    resultSpan.textContent = '✖ ' + (result.error || result);
+                } else if (type === 'success') {
+                    resultSpan.className = 'ds-console-success';
+                    resultSpan.textContent = '✓ ' + (result.info || result.success || 'done');
+                } else if (type === 'info') {
+                    resultSpan.className = 'ds-console-info';
+                    resultSpan.textContent = 'ℹ ' + (result.info || result);
+                } else if (type === 'snapshot') {
+                    resultSpan.className = 'ds-console-info';
+                    var count = result.elements ? result.elements.length : 0;
+                    resultSpan.textContent = '▶ ' + count + ' interactive elements';
+                } else if (type === 'screenshot') {
+                    resultSpan.className = 'ds-console-success';
+                    resultSpan.textContent = '▶ Screenshot (' + result.size + ')';
+                } else {
+                    resultSpan.className = 'ds-console-result';
+                    var txt = result.text || result.title || result.url || JSON.stringify(result).substring(0, 100);
+                    resultSpan.textContent = '▶ ' + txt;
+                }
+
+                resultLine.appendChild(resultSpan);
+                consoleContent.appendChild(resultLine);
+
+                // Show screenshots inline in console
+                if (result.screenshot) {
+                    var imgLine = document.createElement('div');
+                    imgLine.className = 'ds-console-line';
+                    var img = document.createElement('img');
+                    img.src = result.screenshot;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '160px';
+                    img.style.borderRadius = '4px';
+                    img.style.margin = '4px 0 4px 14px';
+                    imgLine.appendChild(img);
+                    consoleContent.appendChild(imgLine);
+                }
+
+                // Show snapshot formatted output
+                if (result.formatted) {
+                    var preLine = document.createElement('div');
+                    preLine.className = 'ds-console-line';
+                    var pre = document.createElement('pre');
+                    pre.style.margin = '2px 0 2px 14px';
+                    pre.style.color = '#8b949e';
+                    pre.style.fontSize = '11px';
+                    pre.style.whiteSpace = 'pre-wrap';
+                    pre.textContent = result.formatted.substring(0, 1500) + (result.formatted.length > 1500 ? '...' : '');
+                    preLine.appendChild(pre);
+                    consoleContent.appendChild(preLine);
+                }
+            }
+
+            // Auto-scroll to bottom
+            consoleContent.scrollTop = consoleContent.scrollHeight;
+
+            // Auto-show console on first command
+            if (!consoleVisible) {
+                consoleVisible = true;
+                consolePanel.classList.add('active');
+                consoleHeader.querySelector('.ds-console-title').innerHTML = '▼ 终端控制台 <span class="ds-console-badge">Agent</span>';
+            }
+        }
+
         const inputArea = document.createElement('div');
         inputArea.className = 'ds-chat-input-area';
         chatWindow.appendChild(inputArea);
@@ -2985,6 +3831,34 @@
         contextLabel.htmlFor = 'ds-context-checkbox';
         contextLabel.innerText = '🌐 使用网页上下文';
         contextToggle.appendChild(contextLabel);
+
+        // Browser Agent Mode Toggle
+        const agentToggle = document.createElement('div');
+        agentToggle.className = 'ds-context-toggle';
+        agentToggle.style.marginLeft = '12px';
+        contextToggle.appendChild(agentToggle);
+
+        const agentCheckbox = document.createElement('input');
+        agentCheckbox.type = 'checkbox';
+        agentCheckbox.id = 'ds-agent-checkbox';
+        agentCheckbox.checked = config.browserAgentMode;
+        agentToggle.appendChild(agentCheckbox);
+
+        const agentLabel = document.createElement('label');
+        agentLabel.htmlFor = 'ds-agent-checkbox';
+        agentLabel.innerText = '🤖 Agent模式';
+        agentLabel.title = '启用后AI可以操控浏览器执行任务，持续执行直到目标达成（参考pi-agent-browser）';
+        agentToggle.appendChild(agentLabel);
+
+        agentCheckbox.addEventListener('change', function() {
+            config.browserAgentMode = agentCheckbox.checked;
+            GM_setValue('browserAgentMode', config.browserAgentMode);
+            if (config.browserAgentMode) {
+                showNotification('Agent模式已开启 — AI将可以操控浏览器执行任务', 'success');
+            } else {
+                showNotification('Agent模式已关闭', 'warning');
+            }
+        });
 
         const inputBox = document.createElement('textarea');
         inputBox.className = 'ds-chat-input';
@@ -3093,27 +3967,27 @@
                 setCurrentApiConfig(newIndex);
                 updateServiceSelect();
                 updateModelSelect(); // 更新模型选择器
-                // 显示切换成功提示
-                showNotification(`已切换到: ${apiConfigs[newIndex].name}`);
             }
         });
 
         modelSelect.addEventListener('change', (e) => {
             updateCurrentModel();
-            showNotification(`已选择模型: ${e.target.value}`);
         });
 
         settingsArea.appendChild(serviceSelect);
         settingsArea.appendChild(modelSelect);
 
+        // 设置按钮
         const settingsBtn = document.createElement('span');
         settingsBtn.className = 'ds-chat-settings-btn';
         settingsBtn.innerText = '⚙️';
+        settingsBtn.title = 'API配置与人格设置';
         settingsArea.appendChild(settingsBtn);
 
         const clearBtn = document.createElement('span');
         clearBtn.className = 'ds-chat-settings-btn';
         clearBtn.innerText = '🗑️';
+        clearBtn.title = '清空聊天';
         settingsArea.appendChild(clearBtn);
 
         // 显示通知消息
@@ -3224,6 +4098,7 @@
             GM_setValue('usePageContext', config.usePageContext);
         });
 
+        // 设置按钮点击事件
         settingsBtn.addEventListener('click', () => {
             openSettingsModal();
         });
@@ -3250,7 +4125,7 @@
                 .replace(/\s{2,}/g, ' ')
                 .trim();
 
-            const MAX_LENGTH = 20000;
+            const MAX_LENGTH = 30000;
             let content = `
 [网页元信息]
 标题: ${document.title}
@@ -3387,8 +4262,263 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
         }
 
         // 发送消息函数
+        // Browser agent instance
+        const browserAgent = new BrowserAgent();
+        // Agent loop state
+        let agentRunning = false;
+        let agentIterationCount = 0;
+
+        // Execute agent loop: run tool commands and feed results back
+        async function runAgentLoop(aiResponse, originalMessage, retryCount) {
+            if (!config.browserAgentMode) return false;
+            if (agentIterationCount >= config.agentMaxIterations) {
+                addAIMessage('⚠️ 已达到最大迭代次数 (' + config.agentMaxIterations + ')，任务已停止。');
+                agentRunning = false;
+                return false;
+            }
+
+            var commands = browserAgent.extractCommands(aiResponse);
+            if (commands.length === 0) return false;
+
+            agentRunning = true;
+            agentIterationCount++;
+
+            // Show which commands are being executed
+            var cmdLog = '🔄 Agent 迭代 #' + agentIterationCount + ' — 执行命令:\n';
+            commands.forEach(function(c) { cmdLog += '  - ' + c + '\n'; });
+            addAIMessage(cmdLog);
+
+            // Execute each command sequentially
+            var results = [];
+            for (var i = 0; i < commands.length; i++) {
+                var cmd = commands[i];
+                var cmdLower = cmd.split(/\s+/)[0].toLowerCase();
+
+                // Check for done command
+                if (cmdLower === 'done') {
+                    agentRunning = false;
+                    return true;
+                }
+
+                try {
+                    var result = await browserAgent.executeCommand(cmd);
+                    if (result) {
+                        results.push({ command: cmd, result: result });
+                        // Show screenshot inline if available
+                        if (result.screenshot) {
+                            var imgHtml = '<div style="margin:8px 0;max-width:100%;overflow:auto;border-radius:8px;border:1px solid rgba(0,0,0,0.1)">';
+                            imgHtml += '<img src="' + result.screenshot + '" style="max-width:100%;height:auto;display:block" />';
+                            imgHtml += '</div>';
+                            addAIMessage('📸 截图 (' + result.size + '): ' + imgHtml);
+                        }
+                        // Show formatted snapshot output
+                        if (result.formatted) {
+                            addAIMessage('🔍 ' + result.info + ':\n```\n' + result.formatted.substring(0, 2000) + '\n```');
+                        } else if (result.info) {
+                            addAIMessage('ℹ️ ' + result.info);
+                        }
+                        // Show get title/url/text results
+                        if (result.title && !result.formatted && !result.info && !result.screenshot) {
+                            addAIMessage('📄 ' + cmd + ' → ' + result.title);
+                        }
+                        if (result.url && !result.text && !result.title) {
+                            addAIMessage('🔗 ' + cmd + ' → ' + result.url);
+                        }
+                        if (result.text && !result.formatted) {
+                            var txt = result.text.substring(0, 500);
+                            addAIMessage('📄 页面内容 (' + result.title + '):\n' + txt + (result.text.length > 500 ? '...' : ''));
+                        }
+                    }
+                } catch (e) {
+                    results.push({ command: cmd, error: e.message });
+                }
+            }
+
+            // Build feedback for the AI
+            var feedback = '【Browser Agent 执行结果】\n';
+            results.forEach(function(r) {
+                var res = r.result;
+                if (r.error) {
+                    feedback += '❌ ' + r.command + ' → 错误: ' + r.error + '\n';
+                } else if (res && res.error) {
+                    feedback += '❌ ' + r.command + ' → ' + res.error + '\n';
+                } else if (res && res.success) {
+                    feedback += '✅ ' + r.command + ' → 成功';
+                    if (res.text) feedback += ' (text: ' + res.text.substring(0, 50) + ')';
+                    if (res.value) feedback += ' (value: ' + res.value.substring(0, 50) + ')';
+                    if (res.tag) feedback += ' (tag: ' + res.tag + ')';
+                    if (res.screenshot) feedback += ' (截图已显示)';
+                    feedback += '\n';
+                } else if (res && res.info) {
+                    feedback += '📋 ' + r.command + ' → ' + res.info + '\n';
+                } else if (res && res.title) {
+                    // get title → {title: "..."}
+                    feedback += '✅ ' + r.command + ' → ' + res.title + '\n';
+                } else if (res && res.url) {
+                    // get url → {url: "..."}
+                    feedback += '✅ ' + r.command + ' → ' + res.url + '\n';
+                } else if (res && res.text) {
+                    // get text → {text: "...", title: "...", url: "..."}
+                    var txtPreview = res.text.substring(0, 200);
+                    feedback += '✅ ' + r.command + ' → ' + res.title + ' | ' + txtPreview + (res.text.length > 200 ? '...' : '') + '\n';
+                } else if (res && res.done) {
+                    feedback += '✅ ' + r.command + ' → ' + (res.info || '任务完成') + '\n';
+                } else {
+                    feedback += '➡️ ' + r.command + '\n';
+                }
+            });
+            feedback += '\n当前页面: ' + location.href + ' | 标题: ' + document.title;
+            feedback += '\n【请根据以上结果决定下一步操作，或使用 done 结束任务】';
+
+            // Feed back as a system message and continue the loop
+            return await continueAgentLoop(feedback, originalMessage, retryCount);
+        }
+
+        // Continue the agent loop: send feedback to API and process response
+        async function continueAgentLoop(feedback, originalMessage, retryCount) {
+            // Add feedback to chat history (as system message)
+            config.chatHistory.push({ role: 'system', content: feedback });
+
+            var currentConfig = getCurrentConfig();
+            var requestData = {
+                model: currentConfig.model,
+                messages: [
+                    { role: 'system', content: config.personalityPrompt + (config.browserAgentMode ? '\n\n' + BrowserAgent.getToolDescriptions() : '') },
+                    ...truncateContext(config.chatHistory, currentConfig.maxContextTokens)
+                ],
+                temperature: currentConfig.temperature,
+                max_tokens: currentConfig.maxTokens,
+                stream: true,
+            };
+
+            if (config.usePageContext) {
+                var pageContent = getPageContent();
+                requestData.messages.splice(1, 0, {
+                    role: 'system',
+                    content: '[当前网页全景信息]\n' + pageContent.content + '\n'
+                });
+            }
+
+            try {
+                return new Promise(function(resolve, reject) {
+                    var timeoutId = setTimeout(function() { reject(new Error('Request timeout')); }, 30000);
+                    GM_xmlhttpRequest({
+                        method: 'POST',
+                        url: currentConfig.apiUrl,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + currentConfig.apiKey,
+                            'Accept': 'text/event-stream'
+                        },
+                        responseType: 'stream',
+                        data: JSON.stringify(requestData),
+                        onloadstart: function(response) {
+                            clearTimeout(timeoutId);
+                            var aiMsgDiv = document.createElement('div');
+                            aiMsgDiv.className = 'ds-chat-message ds-ai-message';
+                            chatContent.appendChild(aiMsgDiv);
+                            chatContent.scrollTop = chatContent.scrollHeight;
+
+                            handleStreamResponse(response, aiMsgDiv).then(function() {
+                                var aiText = aiMsgDiv.textContent || aiMsgDiv.innerText || '';
+                                // Check if there are more tool commands in the response
+                                runAgentLoop(aiText, originalMessage, retryCount).then(function(completed) {
+                                    if (completed) {
+                                        agentRunning = false;
+                                        addAIMessage('✅ 任务完成！');
+                                    }
+                                    resolve();
+                                });
+                            }).catch(reject);
+                        },
+                        onerror: function(error) {
+                            clearTimeout(timeoutId);
+                            reject(new Error('Request failed: ' + error.statusText));
+                        },
+                        ontimeout: function() {
+                            clearTimeout(timeoutId);
+                            reject(new Error('Request timeout'));
+                        }
+                    });
+                });
+            } catch (error) {
+                addAIMessage('❌ Agent 循环错误: ' + error.message);
+                agentRunning = false;
+                return false;
+            }
+        }
+
+        // Helper: add AI message to chat
+        // 直接执行浏览器命令（不过AI，即时响应）
+        async function executeDirectCommand(cmd) {
+            var result = await browserAgent.executeCommand(cmd);
+            var resultText = '';
+
+            if (!result) {
+                resultText = '❌ 未知命令: ' + cmd + '\n支持的命令: navigate, snapshot -i, click @eN, fill @eN "text", type, select, press, scroll, get, extract, screenshot, wait, done';
+                addAIMessage(resultText);
+                return;
+            }
+
+            if (result.error) {
+                resultText = '❌ ' + result.error;
+            } else if (result.formatted) {
+                resultText = '🔍 ' + result.info + ':\n\n```\n' + result.formatted.substring(0, 3000) + '\\n```';
+            } else if (result.screenshot) {
+                resultText = '📸 截图 (' + result.size + '):';
+                addAIMessage(resultText);
+                var imgHtml = '<div style="margin:8px 0;max-width:100%;overflow:auto;border-radius:8px;border:1px solid rgba(0,0,0,0.1)">';
+                imgHtml += '<img src="' + result.screenshot + '" style="max-width:100%;height:auto;display:block" />';
+                imgHtml += '</div>';
+                addAIMessage(imgHtml);
+                return;
+            } else if (result.info) {
+                resultText = 'ℹ️ ' + result.info;
+            } else if (result.success) {
+                resultText = '✅ ' + cmd + ' 执行成功';
+                if (result.text) resultText += '\n  内容: ' + result.text.substring(0, 100);
+                if (result.value) resultText += '\n  值: ' + result.value.substring(0, 100);
+            } else if (result.text) {
+                resultText = '📄 页面: ' + result.title + '\n' + result.text.substring(0, 2000);
+            } else if (result.title) {
+                resultText = '📄 标题: ' + result.title;
+            } else if (result.url) {
+                resultText = '🔗 URL: ' + result.url;
+            } else if (result.done) {
+                resultText = '✅ 任务完成！' + (result.info ? ' ' + result.info : '');
+            } else {
+                resultText = JSON.stringify(result, null, 2);
+            }
+
+            addAIMessage(resultText);
+        }
+
+        function addAIMessage(text) {
+            var msgDiv = document.createElement('div');
+            msgDiv.className = 'ds-chat-message ds-ai-message';
+            msgDiv.innerHTML = '<div class="ds-message-content">' + renderMarkdown(text) + '</div>';
+            chatContent.appendChild(msgDiv);
+            chatContent.scrollTop = chatContent.scrollHeight;
+            renderAllContent();
+        }
+
         async function sendMessage(message, retryCount = 0) {
             if (!message.trim()) return;
+
+            // 直接命令模式：在Agent模式下，用户消息匹配浏览器命令时直接执行
+            var directCmd = null;
+            var browserCmdRegex = /^(navigate|snapshot|click|fill|type|select|press|scroll|get|extract|screenshot|wait|done)(\b|$)/i;
+            if (config.browserAgentMode && browserCmdRegex.test(message.trim())) {
+                directCmd = message.trim();
+            } else if (config.browserAgentMode && message.trim().startsWith('!')) {
+                // 也支持 !command 格式
+                directCmd = message.trim().substring(1).trim();
+            }
+
+            if (directCmd) {
+                var result = await executeDirectCommand(directCmd);
+                return;
+            }
 
             if (!getCurrentConfig().apiKey) {
                 alert('请先设置 API 密钥！');
@@ -3409,9 +4539,21 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
             config.chatHistory.push(userMsg);
             GM_setValue('chatHistory', config.chatHistory);
 
+            // 自动附加当前网页信息到用户消息
+            var pageCtxHtml = '';
+            if (config.usePageContext) {
+                try {
+                    var pgInfo = getPageContent();
+                    pageCtxHtml = '<div style="font-size:11px;color:#999;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;margin-bottom:6px;word-break:break-all;text-align:left">';
+                    pageCtxHtml += '<span>\ud83d\udcc4</span> ' + pgInfo.title + '<br>';
+                    pageCtxHtml += '<span>\ud83d\udd17</span> ' + pgInfo.url;
+                    pageCtxHtml += '</div>';
+                } catch(e) {}
+            }
+
             const userMsgDiv = document.createElement('div');
             userMsgDiv.className = 'ds-chat-message ds-user-message';
-            userMsgDiv.innerHTML = `<div class="ds-message-content">${renderMarkdown(message)}</div>`;
+            userMsgDiv.innerHTML = pageCtxHtml + '<div class="ds-message-content">' + renderMarkdown(message) + '</div>';
             chatContent.appendChild(userMsgDiv);
 
             const thinkingMsgDiv = document.createElement('div');
@@ -3429,7 +4571,7 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
             const requestData = {
                 model: currentConfig.model,
                 messages: [
-                    { role: 'system', content: config.personalityPrompt },
+                    { role: 'system', content: config.personalityPrompt + (config.browserAgentMode ? '\n\n' + BrowserAgent.getToolDescriptions() : '') },
                     ...truncateContext(config.chatHistory, currentConfig.maxContextTokens)
                 ],
                 temperature: currentConfig.temperature,
@@ -3440,46 +4582,137 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
             if (config.usePageContext) {
                 const pageContent = getPageContent();
                 requestData.messages.splice(1, 0, {
-                    role: 'system',
-                    content: `[当前网页全景信息]
-${pageContent.content}
+                                            role: 'system',
+                                            content: `[当前网页全景信息]
+                    ${pageContent.content}
 
-以下是AI渲染指南，请严格遵守：
+                    以下是AI渲染指南，请严格遵守：
 
-1. 数学公式渲染：
-   - 行内公式：使用 $e^{i\pi} + 1 = 0$
-   - 块级公式：使用 $$\\int_{-\infty}^{\infty} e^{-x^2} dx = \\sqrt{\\pi}$$
+                    ## 📋 AI渲染指南 v2.0
 
-2. 表格渲染：
-   - 使用标准Markdown表格语法
-   - 示例：
-     | 常数名称 | 符号 | 近似值 | 描述 |
-     | :--- | :---: | :--- | :--- |
-     | 圆周率 | π | 3.1415926535 | 圆的周长与直径之比 |
-     | 自然常数 | e | 2.7182818284 | 自然对数的底数 |
-     | 黄金分割率 | φ | 1.6180339887 | \\frac{1+\\sqrt{5}}{2} |
 
-3. 增强渲染功能：
-   - 标题：使用 # 到 ###### 创建渐变色标题
-   - 列表：使用 -、*、+ 或数字创建列表
-   - 任务列表：使用 - [ ] 和 - [x]
-   - 内联代码：使用 \`code\` 包裹
-   - 链接：[文本](URL)
-   - 块引用：使用 > 开头
-   - 水平线：使用 ---、*** 或 ___
+                    #### 1.1 行内公式
+                    - **示例**：
+                      - → $e^{i\\pi} + 1 = 0$
+                      - $\\frac{a}{b} + \\frac{c}{d} = \\frac{ad+bc}{bd}$
+                      - $\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$
 
-4. 样式增强：
-   - 重要文本：使用 **加粗** 或 *斜体*
-   - 颜色渲染：使用内联CSS，如 <span style="color: #ff6b6b; font-weight: bold">红色加粗</span>
-   - 渐变文本：标题自动应用渐变色
-   - 代码块：深色背景+语言标识
+                    #### 1.2 块级公式
+                    - **语法**：使用 $$公式$$ 或 \\[公式\\]
+                    - **示例**：
+                      - $$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$
+                      - $$\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$$
+                      - \\[\\sum_{n=1}^{\\infty} \\frac{1}{n^2} = \\frac{\\pi^2}{6}\\]
 
-5. 禁止使用：
-   - 代码块渲染（使用内联代码代替）
-   - 图表渲染（Mermaid等）
+                    # 实验数据分析
 
-请根据用户问题，使用上述渲染方式组织回答，确保数学公式和表格正确显示。`
-                });
+                    - **基本结构**：
+
+                      | 表头1 | 表头2 | 表头3 |
+                      | :--- | :---: | ---: |
+                      | 左对齐 | 居中 | 右对齐 |
+
+
+                    ## 分析步骤
+
+                    1. **数据清洗**
+                       - [x] 去除异常值
+                       - [x] 填补缺失值
+                       - [ ] 标准化处理
+
+                    2. **统计分析**
+                       - 计算描述性统计
+                       - 绘制分布图
+                       - 假设检验
+
+                    3. **结果解读**
+                       - 主要发现
+                       - 结论建议
+                    ### 6. 文本样式规范
+
+                    #### 6.1 强调文本
+                    - **加粗**：**重要文本** 或 __重要文本__
+                    - **斜体**：*倾斜文本* 或 _倾斜文本_
+                    - **加粗斜体**：***加粗斜体*** 或 ___加粗斜体___
+
+                    #### 6.2 链接和引用
+                    - **链接**：[链接文本](URL)
+                      - 示例：[Google](https://www.google.com)
+                    - **块引用**：> 引用内容
+
+                      > 这是一个引用
+                      > 可以多行
+                      > 用于强调或引用他人观点
+
+                    #### 6.3 特殊文本效果
+                    - **删除线**：~~删除的文本~~（虽然不常用）
+                    - **高亮文本**：使用HTML标签
+                      - <span style="color: #ff6b6b; font-weight: bold">红色加粗</span>
+                      - <span style=background: yellow; padding: 2px 4px;>高亮背景</span>
+
+                    ### 7. 水平线和分隔
+                    - **语法**：使用 --- 或 *** 或 ___
+                    - **使用场景**：
+                      - 不同主题内容之间
+                      - 长文档的章节分隔
+                      - 强调重要内容的前后分隔
+                    - **示例**：
+
+                      第一部分内容...
+
+                      ---
+
+                      第二部分内容...
+
+                    ---
+
+                    ## 结论
+
+                    实验数据符合预期分布，$p < 0.05$，结果具有统计显著性。
+
+                    - **Mermaid图表**：不支持流程图、甘特图等
+                    - **HTML嵌入**：不支持复杂HTML结构
+
+                    #### 9.2 替代方案
+                    - **代码展示**：使用内联代码或表格
+                    - **图表展示**：使用表格或文字描述
+                    - **复杂格式**：使用分段说明
+
+                    ### 10. 最佳实践建议
+
+                    #### 10.1 内容组织
+                    1. **结构清晰**：使用标题建立层次
+                    2. **重点突出**：使用加粗、列表突出关键信息
+                    3. **视觉分隔**：使用水平线分隔不同部分
+                    4. **数据可视化**：优先使用表格展示数据
+
+                    #### 10.2 数学公式
+                    1. **简洁明了**：避免过长公式
+                    2. **分步展示**：复杂公式分步推导
+                    3. **上下文配合**：公式前后要有文字说明
+
+                    #### 10.3 表格使用
+                    1. **对齐一致**：保持列对齐方式统一
+                    2. **表头清晰**：表头应明确说明列内容
+                    3. **数据准确**：确保数据准确无误
+                    4. **适度使用**：避免过多表格造成视觉疲劳
+
+                    ### 11. 响应式建议
+
+                    #### 11.1 根据用户问题类型选择渲染方式
+                    - **数学问题**：重点使用公式渲染
+                    - **数据问题**：重点使用表格
+                    - **步骤说明**：使用有序列表
+                    - **概念解释**：使用标题和段落
+
+                    #### 11.2 根据内容长度调整
+                    - **简短回答**：使用内联公式和简单列表
+                    - **详细解答**：使用标题、表格、多级列表
+                    - **综合内容**：混合使用多种渲染方式
+
+                    ---
+
+                    **请根据用户的具体问题，灵活运用上述渲染规范，确保回答既美观又易读。记住：清晰的结构和正确的渲染能显著提升用户体验！**`                });
             }
 
             try {
@@ -3501,7 +4734,20 @@ ${pageContent.content}
                         onloadstart: (response) => {
                             try {
                                 handleStreamResponse(response, aiMsgDiv)
-                                    .then(resolve)
+                                    .then(function() {
+                                        // After normal response, check for agent commands
+                                        if (config.browserAgentMode) {
+                                            var aiText = aiMsgDiv.textContent || aiMsgDiv.innerText || '';
+                                            runAgentLoop(aiText, message, retryCount).then(function(completed) {
+                                                if (completed) {
+                                                    addAIMessage('✅ 任务完成！');
+                                                }
+                                                resolve();
+                                            });
+                                        } else {
+                                            resolve();
+                                        }
+                                    })
                                     .catch(reject);
                             } catch (error) {
                                 reject(error);
@@ -3576,6 +4822,12 @@ ${pageContent.content}
             contextCheckbox.checked = !contextCheckbox.checked;
             config.usePageContext = contextCheckbox.checked;
             GM_setValue('usePageContext', config.usePageContext);
+        });
+        GM_registerMenuCommand("切换Agent模式", () => {
+            agentCheckbox.checked = !agentCheckbox.checked;
+            config.browserAgentMode = agentCheckbox.checked;
+            GM_setValue('browserAgentMode', config.browserAgentMode);
+            updateAgentStatus();
         });
     }
 })();
