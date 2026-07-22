@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      3.4.5
+// @version      3.4.6
 // @description  支持流式响应、历史记录、多服务API配置、模型选择、参数设置、Agent浏览器操控（参考pi-agent-browser），增强Markdown渲染
 // @author       Monika_host
 // @match        *://*/*
@@ -1883,87 +1883,7 @@
         margin-right: 5px;
     }
 
-    /* Agent模式激活状态指示器 */
-    .ds-chat-header.agent-active {
-        background: linear-gradient(135deg, rgba(156, 39, 176, 0.6) 0%, rgba(103, 58, 183, 0.6) 100%) !important;
-        border-bottom: 2px solid rgba(156, 39, 176, 0.8);
-    }
 
-    .ds-chat-header.agent-active .ds-chat-title::after {
-        content: ' 🤖';
-        animation: pulse 1.5s infinite;
-    }
-
-    .ds-agent-status {
-        display: inline-block;
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 8px;
-        background: rgba(156, 39, 176, 0.3);
-        color: #fff;
-        margin-left: 6px;
-        vertical-align: middle;
-    }
-
-    .ds-context-summary {
-        font-size: 11px;
-        color: #666;
-        margin-top: 5px;
-        font-style: italic;
-    }
-
-    .ds-chat-message {
-        white-space: pre-wrap;
-        word-break: break-word;
-        visibility: visible !important;
-        display: block !important;
-        opacity: 1 !important;
-    }
-
-    .ds-ai-message {
-        font-size: 14px;
-        line-height: 1.5;
-        padding: 8px 12px;
-        margin: 0px 0px;
-        background-color: rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        color: #2372c3 !important;
-    }
-
-    .ds-message-content {
-        font-size: 14px !important;
-        line-height: 1.5 !important;
-        color: #2372c3 !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        min-height: 1em;
-        background: none !important;
-        background-color: transparent !important;
-        background-image: none !important;
-        text-shadow: none !important;
-    }
-
-    @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0; }
-    }
-
-    .ds-message-content::after {
-        content: '|';
-        position: relative;
-        display: inline;
-        color: transparent !important;
-        animation: blink 1s infinite;
-        margin-left: 2px;
-    }
-
-    .ds-message-content:not(:empty)::after {
-        display: none;
-    }
-
-    /* Agent Console Panel - Terminal Style */
     .ds-console-panel {
         background: #0d1117;
         border-top: 1px solid #30363d;
@@ -3645,23 +3565,6 @@ snapshot -i returns elements as:
         chatHeader.appendChild(chatTitle);
 
         // Agent mode status indicator
-        var agentStatus = document.createElement('span');
-        agentStatus.className = 'ds-agent-status';
-        agentStatus.style.display = 'none';
-        chatTitle.appendChild(agentStatus);
-
-        function updateAgentStatus() {
-            if (config.browserAgentMode) {
-                agentStatus.style.display = 'inline-block';
-                agentStatus.textContent = '🤖 Agent';
-                chatHeader.classList.add('agent-active');
-            } else {
-                agentStatus.style.display = 'none';
-                chatHeader.classList.remove('agent-active');
-            }
-        }
-        updateAgentStatus();
-
         const headerButtons = document.createElement('div');
         headerButtons.style.display = 'flex';
         headerButtons.style.alignItems = 'center';
@@ -4827,7 +4730,6 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
             agentCheckbox.checked = !agentCheckbox.checked;
             config.browserAgentMode = agentCheckbox.checked;
             GM_setValue('browserAgentMode', config.browserAgentMode);
-            updateAgentStatus();
         });
     }
 })();
