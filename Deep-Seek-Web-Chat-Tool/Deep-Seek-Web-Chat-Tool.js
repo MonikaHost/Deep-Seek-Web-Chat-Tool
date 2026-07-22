@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      3.4.7
+// @version      3.4.8
 // @description  支持流式响应、历史记录、多服务API配置、模型选择、参数设置、Agent浏览器操控（参考pi-agent-browser），增强Markdown渲染
 // @author       Monika_host
 // @match        *://*/*
@@ -1872,7 +1872,7 @@
 
     .ds-context-toggle {
         margin-bottom: 8px;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         font-size: 12px;
         backdrop-filter: blur(20px) saturate(180%);
@@ -1881,6 +1881,12 @@
 
     .ds-context-toggle input {
         margin-right: 5px;
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    .ds-context-toggle label {
+        line-height: 1.4;
     }
 
 
@@ -2305,14 +2311,14 @@ snapshot -i returns elements as:
 // ============================================================
 
 
-    // 初始化API配置
+    // 初始化API配置（默认模型列表为空，用户需自行获取或手动填入）
     let apiConfigs = GM_getValue('apiConfigs', [
         {
             id: 'deepseek',
             name: '深度求索',
             apiUrl: 'https://api.deepseek.com/v1/chat/completions',
             apiKey: '',
-            models: ['deepseek-chat', 'deepseek-coder'],
+            models: [],
             temperature: 0.7,
             maxTokens: 4000,
             maxContextTokens: 256000
@@ -2322,7 +2328,7 @@ snapshot -i returns elements as:
             name: '阿里云',
             apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
             apiKey: '',
-            models: ['qwen-max', 'qwen-plus', 'qwen-turbo'],
+            models: [],
             temperature: 0.7,
             maxTokens: 4000,
             maxContextTokens: 256000
@@ -2332,7 +2338,7 @@ snapshot -i returns elements as:
             name: '硅基流动',
             apiUrl: 'https://api.siliconflow.cn/v1/chat/completions',
             apiKey: '',
-            models: ['deepseek-ai/DeepSeek-V3.2', 'zai-org/GLM-4.6V'],
+            models: [],
             temperature: 0.7,
             maxTokens: 4000,
             maxContextTokens: 256000
@@ -2911,18 +2917,11 @@ snapshot -i returns elements as:
                                 });
                             }
 
-                            // 如果还是没有模型，尝试从API地址推断
+                            // 如果还是没有模型，返回空数组让用户自行获取
                             if (models.length === 0) {
-                                console.warn('无法从响应中解析模型列表，尝试推断...');
-                                if (apiUrl.includes('deepseek')) {
-                                    models = ['deepseek-chat', 'deepseek-coder', 'deepseek-v2.5'];
-                                } else if (apiUrl.includes('dashscope')) {
-                                    models = ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen-7b', 'qwen-14b'];
-                                } else if (apiUrl.includes('siliconflow')) {
-                                    models = ['deepseek-ai/DeepSeek-V2.5', 'BAAI/bge-large-zh-v1.5'];
-                                } else {
-                                    models = ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'];
-                                }
+                                console.warn('无法从响应中解析模型列表');
+                                resolve([]);
+                                return;
                             }
 
                             // 去重和排序
@@ -2945,12 +2944,12 @@ snapshot -i returns elements as:
             });
         }
 
-        // 快速添加模板
+        // 快速添加模板（仅填入名称和地址，模型需用户自行获取或手动填入）
         const templates = [
-            { name: '深度求索', apiUrl: 'https://api.deepseek.com/v1/chat/completions', models: ['deepseek-chat', 'deepseek-coder'] },
-            { name: '阿里云', apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', models: ['qwen-max', 'qwen-plus', 'qwen-turbo'] },
-            { name: '硅基流动', apiUrl: 'https://api.siliconflow.cn/v1/chat/completions', models: ['deepseek-ai/DeepSeek-V2.5', 'BAAI/bge-large-zh-v1.5'] },
-            { name: '小米MiMo', apiUrl: 'https://api.xiaomimimo.com/v1/chat/completions', models: ['mimo-v2-flash', 'mimo-v2-pro'] }
+            { name: '深度求索', apiUrl: 'https://api.deepseek.com/v1/chat/completions' },
+            { name: '阿里云', apiUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions' },
+            { name: '硅基流动', apiUrl: 'https://api.siliconflow.cn/v1/chat/completions' },
+            { name: '小米MiMo', apiUrl: 'https://api.xiaomimimo.com/v1/chat/completions' }
         ];
 
         const templateContainer = document.createElement('div');
@@ -2973,7 +2972,6 @@ snapshot -i returns elements as:
             btn.onclick = () => {
                 addServiceForm.querySelector('[data-key="name"]').value = template.name;
                 addServiceForm.querySelector('[data-key="apiUrl"]').value = template.apiUrl;
-                addServiceForm.querySelector('[data-key="models"]').value = template.models.join('\n');
             };
             templateButtons.appendChild(btn);
         });
@@ -3587,134 +3585,15 @@ snapshot -i returns elements as:
         chatContent.className = 'ds-chat-content';
         chatWindow.appendChild(chatContent);
 
-        // Agent Console Panel
-        var consolePanel = document.createElement('div');
-        consolePanel.className = 'ds-console-panel';
-        chatWindow.appendChild(consolePanel);
-
-        var consoleHeader = document.createElement('div');
-        consoleHeader.className = 'ds-console-header';
-        consoleHeader.title = '点击展开/收起控制台';
-        consolePanel.appendChild(consoleHeader);
-
-        var consoleTitle = document.createElement('div');
-        consoleTitle.className = 'ds-console-title';
-        consoleTitle.innerHTML = '▶ 终端控制台 <span class="ds-console-badge">Agent</span>';
-        consoleHeader.appendChild(consoleTitle);
-
-        var consoleClear = document.createElement('span');
-        consoleClear.className = 'ds-console-clear';
-        consoleClear.textContent = '✖';
-        consoleClear.title = '清空控制台';
-        consoleHeader.appendChild(consoleClear);
-
-        var consoleContent = document.createElement('div');
-        consoleContent.className = 'ds-console-content';
-        consolePanel.appendChild(consoleContent);
-
-        // Console state
-        var consoleVisible = false;
-
-        // Toggle console on header click
-        consoleHeader.addEventListener('click', function(e) {
-            if (e.target === consoleClear) return;
-            consoleVisible = !consoleVisible;
-            consolePanel.classList.toggle('active', consoleVisible);
-            consoleHeader.querySelector('.ds-console-title').innerHTML = (consoleVisible ? '▼' : '▶') + ' 终端控制台 <span class="ds-console-badge">Agent</span>';
-        });
-
-        // Clear console
-        consoleClear.addEventListener('click', function() {
-            consoleContent.innerHTML = '';
-        });
-
-        // Console log function
+        // Agent Console - stored in memory, shown in settings
+        var consoleLogs = [];
         function consoleLog(cmd, result, type) {
-            if (!consoleContent) return;
-            var line = document.createElement('div');
-            line.className = 'ds-console-line';
-
-            var prompt = document.createElement('span');
-            prompt.className = 'ds-console-prompt';
-            prompt.textContent = '$';
-            line.appendChild(prompt);
-
-            var cmdSpan = document.createElement('span');
-            cmdSpan.className = 'ds-console-cmd';
-            cmdSpan.textContent = cmd;
-            line.appendChild(cmdSpan);
-
-            consoleContent.appendChild(line);
-
-            if (result) {
-                var resultLine = document.createElement('div');
-                resultLine.className = 'ds-console-line';
-                var resultSpan = document.createElement('span');
-                resultSpan.style.marginLeft = '14px';
-
-                if (type === 'error') {
-                    resultSpan.className = 'ds-console-error';
-                    resultSpan.textContent = '✖ ' + (result.error || result);
-                } else if (type === 'success') {
-                    resultSpan.className = 'ds-console-success';
-                    resultSpan.textContent = '✓ ' + (result.info || result.success || 'done');
-                } else if (type === 'info') {
-                    resultSpan.className = 'ds-console-info';
-                    resultSpan.textContent = 'ℹ ' + (result.info || result);
-                } else if (type === 'snapshot') {
-                    resultSpan.className = 'ds-console-info';
-                    var count = result.elements ? result.elements.length : 0;
-                    resultSpan.textContent = '▶ ' + count + ' interactive elements';
-                } else if (type === 'screenshot') {
-                    resultSpan.className = 'ds-console-success';
-                    resultSpan.textContent = '▶ Screenshot (' + result.size + ')';
-                } else {
-                    resultSpan.className = 'ds-console-result';
-                    var txt = result.text || result.title || result.url || JSON.stringify(result).substring(0, 100);
-                    resultSpan.textContent = '▶ ' + txt;
-                }
-
-                resultLine.appendChild(resultSpan);
-                consoleContent.appendChild(resultLine);
-
-                // Show screenshots inline in console
-                if (result.screenshot) {
-                    var imgLine = document.createElement('div');
-                    imgLine.className = 'ds-console-line';
-                    var img = document.createElement('img');
-                    img.src = result.screenshot;
-                    img.style.maxWidth = '100%';
-                    img.style.maxHeight = '160px';
-                    img.style.borderRadius = '4px';
-                    img.style.margin = '4px 0 4px 14px';
-                    imgLine.appendChild(img);
-                    consoleContent.appendChild(imgLine);
-                }
-
-                // Show snapshot formatted output
-                if (result.formatted) {
-                    var preLine = document.createElement('div');
-                    preLine.className = 'ds-console-line';
-                    var pre = document.createElement('pre');
-                    pre.style.margin = '2px 0 2px 14px';
-                    pre.style.color = '#8b949e';
-                    pre.style.fontSize = '11px';
-                    pre.style.whiteSpace = 'pre-wrap';
-                    pre.textContent = result.formatted.substring(0, 1500) + (result.formatted.length > 1500 ? '...' : '');
-                    preLine.appendChild(pre);
-                    consoleContent.appendChild(preLine);
-                }
-            }
-
-            // Auto-scroll to bottom
-            consoleContent.scrollTop = consoleContent.scrollHeight;
-
-            // Auto-show console on first command
-            if (!consoleVisible) {
-                consoleVisible = true;
-                consolePanel.classList.add('active');
-                consoleHeader.querySelector('.ds-console-title').innerHTML = '▼ 终端控制台 <span class="ds-console-badge">Agent</span>';
-            }
+            consoleLogs.push({ cmd: cmd, result: result, type: type, time: Date.now() });
+            if (consoleLogs.length > 200) consoleLogs.shift();
+        }
+        function escapeHtml(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
         const inputArea = document.createElement('div');
@@ -3737,22 +3616,18 @@ snapshot -i returns elements as:
         contextToggle.appendChild(contextLabel);
 
         // Browser Agent Mode Toggle
-        const agentToggle = document.createElement('div');
-        agentToggle.className = 'ds-context-toggle';
-        agentToggle.style.marginLeft = '12px';
-        contextToggle.appendChild(agentToggle);
-
         const agentCheckbox = document.createElement('input');
         agentCheckbox.type = 'checkbox';
         agentCheckbox.id = 'ds-agent-checkbox';
         agentCheckbox.checked = config.browserAgentMode;
-        agentToggle.appendChild(agentCheckbox);
+        agentCheckbox.style.marginLeft = '12px';
+        contextToggle.appendChild(agentCheckbox);
 
         const agentLabel = document.createElement('label');
         agentLabel.htmlFor = 'ds-agent-checkbox';
         agentLabel.innerText = '🤖 Agent模式';
         agentLabel.title = '启用后AI可以操控浏览器执行任务，持续执行直到目标达成（参考pi-agent-browser）';
-        agentToggle.appendChild(agentLabel);
+        contextToggle.appendChild(agentLabel);
 
         agentCheckbox.addEventListener('change', function() {
             config.browserAgentMode = agentCheckbox.checked;
@@ -4228,6 +4103,26 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
                     var result = await browserAgent.executeCommand(cmd);
                     if (result) {
                         results.push({ command: cmd, result: result });
+                        // Log to console storage
+                        if (result.error) {
+                            consoleLog(cmd, result, 'error');
+                        } else if (result.screenshot) {
+                            consoleLog(cmd, result, 'screenshot');
+                        } else if (result.formatted) {
+                            consoleLog(cmd, result, 'snapshot');
+                        } else if (result.info) {
+                            consoleLog(cmd, result, 'info');
+                        } else if (result.title) {
+                            consoleLog(cmd, result, 'success');
+                        } else if (result.url) {
+                            consoleLog(cmd, result, 'success');
+                        } else if (result.text) {
+                            consoleLog(cmd, result, 'text');
+                        } else if (result.success) {
+                            consoleLog(cmd, result, 'success');
+                        } else {
+                            consoleLog(cmd, result, 'info');
+                        }
                         // Show screenshot inline if available
                         if (result.screenshot) {
                             var imgHtml = '<div style="margin:8px 0;max-width:100%;overflow:auto;border-radius:8px;border:1px solid rgba(0,0,0,0.1)">';
