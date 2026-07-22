@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepseek Chat 实时网页检索对话工具版
 // @namespace    Monika_host
-// @version      3.4.6
+// @version      3.4.7
 // @description  支持流式响应、历史记录、多服务API配置、模型选择、参数设置、Agent浏览器操控（参考pi-agent-browser），增强Markdown渲染
 // @author       Monika_host
 // @match        *://*/*
@@ -3630,6 +3630,7 @@ snapshot -i returns elements as:
 
         // Console log function
         function consoleLog(cmd, result, type) {
+            if (!consoleContent) return;
             var line = document.createElement('div');
             line.className = 'ds-console-line';
 
@@ -3950,6 +3951,9 @@ snapshot -i returns elements as:
 
         displayHistory();
 
+        // 跨页面Agent保活检测
+        setTimeout(function() { resumeAgentAfterNav(); }, 2000);
+
         // 事件监听
         icon.addEventListener('click', () => {
             chatWindow.classList.toggle('active');
@@ -4204,6 +4208,23 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
                 }
 
                 try {
+                    // Before navigate, save state for cross-page persistence
+                    if (cmdLower === 'navigate') {
+                        var _nm = cmd.match(/^navigate\s+(.+)/i);
+                        if (_nm) {
+                            var _rem = commands.slice(i + 1);
+                            var _fb = '【Browser Agent 执行结果】\n✅ navigate ' + _nm[1] + ' → 导航成功\n\n';
+                            _fb += '当前页面: ' + _nm[1] + ' | 请在新页面继续操作\n';
+                            _fb += '【请根据以上结果决定下一步操作，或使用 done 结束任务】';
+                            saveAgentState(_rem, _fb, originalMessage, retryCount);
+                            if (_rem.length > 0) {
+                                addAIMessage('⏩ 导航到 ' + _nm[1] + '... 剩余 ' + _rem.length + ' 条命令将在新页面继续执行');
+                            } else {
+                                addAIMessage('⏩ 导航到 ' + _nm[1] + '... 加载完成后继续 AI 对话');
+                            }
+                        }
+                    }
+
                     var result = await browserAgent.executeCommand(cmd);
                     if (result) {
                         results.push({ command: cmd, result: result });
@@ -4403,6 +4424,119 @@ ${allText.substring(0, MAX_LENGTH / 2)}${allText.length > MAX_LENGTH / 2 ? '...'
             chatContent.appendChild(msgDiv);
             chatContent.scrollTop = chatContent.scrollHeight;
             renderAllContent();
+        }
+
+        // ============================================================
+        // Cross-page agent persistence
+        // ============================================================
+        var AGENT_KEY = 'agentCrossPageState';
+
+        function saveAgentState(remaining, feedback, msg, retry) {
+            try {
+                GM_setValue(AGENT_KEY, JSON.stringify({
+                    chatHistory: config.chatHistory,
+                    browserAgentMode: config.browserAgentMode,
+                    usePageContext: config.usePageContext,
+                    personalityPrompt: config.personalityPrompt,
+                    agentIterationCount: agentIterationCount,
+                    pendingCommands: remaining || [],
+                    feedback: feedback || '',
+                    originalMessage: msg || '',
+                    retryCount: retry || 0,
+                    timestamp: Date.now()
+                }));
+                // Also save chatHistory to regular key for display on new page
+                GM_setValue('chatHistory', config.chatHistory);
+            } catch(e) {
+                console.error('[Agent] save fail:', e);
+            }
+        }
+
+        function restoreAgentState() {
+            try {
+                var raw = GM_getValue(AGENT_KEY, '');
+                if (!raw) return null;
+                var s = JSON.parse(raw);
+                if (!s || !s.chatHistory) return null;
+                // Don't clear yet - wait until successfully restored
+                return s;
+            } catch(e) {
+                return null;
+            }
+        }
+
+        async function resumeAgentAfterNav() {
+            // Ensure chatContent exists
+            if (!chatContent) {
+                setTimeout(function() { resumeAgentAfterNav(); }, 500);
+                return;
+            }
+
+            var state = restoreAgentState();
+            if (!state) return;
+
+            // Clear state AFTER successful read
+            GM_setValue(AGENT_KEY, '');
+
+            // Restore config
+            config.chatHistory = state.chatHistory;
+            if (state.browserAgentMode) config.browserAgentMode = state.browserAgentMode;
+            if (state.usePageContext) config.usePageContext = state.usePageContext;
+            if (state.personalityPrompt) config.personalityPrompt = state.personalityPrompt;
+            if (state.agentIterationCount) agentIterationCount = state.agentIterationCount;
+
+            // Auto-show chat window so user can see progress
+            if (chatWindow && chatWindow.classList) {
+                chatWindow.classList.add('active');
+                if (typeof icon !== 'undefined' && icon) icon.style.display = 'none';
+            }
+
+            // Rebuild chat UI
+            chatContent.innerHTML = '';
+            config.chatHistory.forEach(function(msg) {
+                var d = document.createElement('div');
+                d.className = 'ds-chat-message ds-' + msg.role + '-message';
+                d.innerHTML = '<div class="ds-message-content">' + renderMarkdown(msg.content) + '</div>';
+                chatContent.appendChild(d);
+            });
+            chatContent.scrollTop = chatContent.scrollHeight;
+
+            var cmds = state.pendingCommands || [];
+            if (cmds.length > 0) {
+                addAIMessage('🔄 页面已加载，继续执行剩余 ' + cmds.length + ' 条命令...');
+                for (var i = 0; i < cmds.length; i++) {
+                    var c = cmds[i];
+                    var cl = c.split(/\s+/)[0].toLowerCase();
+                    if (cl === 'done') { addAIMessage('✅ 任务完成！'); return; }
+                    try {
+                        var r = await browserAgent.executeCommand(c);
+                        if (r) {
+                            if (r.error) consoleLog(c, r, 'error');
+                            else if (r.screenshot) consoleLog(c, r, 'screenshot');
+                            else if (r.formatted) consoleLog(c, r, 'snapshot');
+                            else if (r.info) consoleLog(c, r, 'info');
+                            else if (r.text) consoleLog(c, r, 'text');
+                            else if (r.title || r.url) consoleLog(c, r, 'success');
+                            else if (r.success) consoleLog(c, r, 'success');
+                            else consoleLog(c, r, 'info');
+                            // If this is also navigate, chain
+                            if (cl === 'navigate' && i < cmds.length - 1) {
+                                saveAgentState(cmds.slice(i + 1), state.feedback, state.originalMessage, state.retryCount);
+                                addAIMessage('⏩ 继续导航...剩余 ' + (cmds.length - i - 1) + ' 条');
+                                return;
+                            }
+                        }
+                    } catch(e) {
+                        consoleLog(c, { error: e.message }, 'error');
+                    }
+                }
+            }
+
+            // All commands done, continue AI loop
+            if (state.feedback) {
+                addAIMessage('✅ 跨页面命令执行完成，继续 AI 对话...');
+                await continueAgentLoop(state.feedback, state.originalMessage, state.retryCount);
+            }
         }
 
         async function sendMessage(message, retryCount = 0) {
